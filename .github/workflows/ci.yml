@@ -36,6 +36,14 @@ jobs:
       - name: Generate dryrun output files
         run: |
           python -m yt2spotify.cli sync "https://www.youtube.com/playlist?list=PLE4B85EC96395A67D" "53nCceptoTItuwCWUIAlXr" --dry-run --no-progress
+      - name: Ensure dryrun output files exist
+        run: |
+          mkdir -p output/dryrun_temp
+          for f in dryrun_added.json all_youtube_entries.json all_results.json not_found_songs.json private_deleted_songs.json; do
+            if [ ! -f "output/dryrun_temp/$f" ]; then
+              echo "[]" > "output/dryrun_temp/$f"
+            fi
+          done
       - name: Run tests
         run: |
           pytest
