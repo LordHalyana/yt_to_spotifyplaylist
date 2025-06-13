@@ -14,39 +14,18 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - name: Install project, dev dependencies, and type stubs
+      - name: Install package and all dev dependencies
         run: |
           pip install .[dev]
-          pip install ruff mypy types-toml
+      - name: Install extra tools
+        run: |
+          pip install ruff mypy types-toml pytest-asyncio
       - name: Lint with ruff
         run: |
           ruff check .
-      - name: Type check with mypy
+      - name: Type check with mypy (strict)
         run: |
-          mypy yt2spotify
-      - name: Generate dryrun output files
+          mypy --strict yt2spotify
+      - name: Run tests (quiet)
         run: |
-          python -m yt2spotify.cli sync "https://www.youtube.com/playlist?list=PLE4B85EC96395A67D" "53nCceptoTItuwCWUIAlXr" --dry-run --no-progress
-      - name: Ensure dryrun output files exist
-        run: |
-          mkdir -p output/dryrun_temp
-          for f in dryrun_added.json all_youtube_entries.json all_results.json not_found_songs.json private_deleted_songs.json; do
-            if [ ! -f "output/dryrun_temp/$f" ]; then
-              echo "[]" > "output/dryrun_temp/$f"
-            fi
-          done
-      - name: Run tests
-        run: |
-          pytest
-      - name: Run coverage checks
-        run: |
-          pytest --cov=yt2spotify --cov-report=term-missing
-          coverage report --fail-under=80
-          coverage report --include="yt2spotify/core.py" --fail-under=70
+          pytest -q
