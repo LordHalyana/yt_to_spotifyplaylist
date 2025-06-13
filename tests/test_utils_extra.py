@@ -1,5 +1,6 @@
 import sys
 import os
+import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from yt2spotify import utils
@@ -52,3 +53,26 @@ def test_validate_json_outputs():
     utils.validate_json_entries(os.path.join(base, 'not_found_songs.json'), {'title', 'artist', 'track', 'status'})
     # Validate private_deleted_songs.json
     utils.validate_json_entries(os.path.join(base, 'private_deleted_songs.json'), {'title', 'artist', 'track', 'status'})
+
+def test_validate_json_entries_missing_keys(tmp_path):
+    # Create a JSON file with a missing key
+    data = [{"title": "Song", "artist": "Artist"}]  # missing 'track' and 'status'
+    file_path = tmp_path / "missing_keys.json"
+    with open(file_path, "w", encoding="utf-8") as f:
+        import json
+        json.dump(data, f)
+    with pytest.raises(AssertionError):
+        utils.validate_json_entries(str(file_path), {"title", "artist", "track", "status"})
+
+def test_validate_no_duplicates_detects_duplicates(tmp_path):
+    # Create a JSON file with duplicate entries
+    data = [
+        {"title": "Song", "artist": "Artist", "track": "Track"},
+        {"title": "Song", "artist": "Artist", "track": "Track"}
+    ]
+    file_path = tmp_path / "dupes.json"
+    with open(file_path, "w", encoding="utf-8") as f:
+        import json
+        json.dump(data, f)
+    with pytest.raises(AssertionError):
+        utils.validate_no_duplicates(str(file_path), {"title", "artist", "track"})
