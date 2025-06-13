@@ -2,8 +2,6 @@
 import asyncio
 import logging
 from typing import Any, Optional
-from rich.logging import RichHandler
-from rich.console import Console
 from yt2spotify.core import get_spotify_client, async_search_with_cache
 from yt2spotify.yt_utils import get_yt_playlist_titles_yt_dlp
 from yt2spotify.youtube import get_yt_playlist_titles_api as yt_api_fetch
@@ -12,17 +10,7 @@ from yt2spotify.cache import TrackCache
 import toml
 import os
 import json
-
-console = Console()
-
-# Setup logging with RichHandler
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(message)s",
-    datefmt="[%X]",
-    handlers=[RichHandler(console=console, show_time=False, show_level=True, show_path=False)]
-)
-logger = logging.getLogger("yt2spotify")
+from yt2spotify.logging_config import logger
 
 def load_config(config_path: Optional[str] = None) -> dict[str, Any]:
     """
@@ -73,12 +61,12 @@ def sync_command(
     else:
         logger.setLevel(logging.INFO)
     # 1. Gather all YouTube titles and filter out private/deleted
-    print("## Working on Youtube Titles ##")
+    logger.info("## Working on Youtube Titles ##")
     if yt_api:
         titles = yt_api_fetch(yt_api, yt_url)
     else:
         titles = get_yt_playlist_titles_yt_dlp(yt_url)
-    print("## Compiled Youtube Titles ##")
+    logger.info("## Compiled Youtube Titles ##")
 
     # Parse and filter YouTube titles
     parsed = []
@@ -323,6 +311,8 @@ def main() -> None:
     sync_parser.add_argument('--config', help='Path to a TOML config file (overrides package default)')
     args = parser.parse_args()
     config = load_config(args.config)
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
     if args.command == 'sync':
         sync_command(
             yt_url=args.yt_url,

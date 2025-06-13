@@ -6,6 +6,16 @@
 
 Sync YouTube playlists to Spotify playlists with robust matching, progress bar, structured logging, and regression-tested logic.
 
+---
+
+## 🚦 Quality Gates
+- **Pre-commit hooks:**
+  - [x] Gitleaks: Automated secret scanning with custom and standard rules (`.gitleaks.toml`)
+  - [x] Ruff: Linting for Python code
+  - [x] Pytest: All tests must pass before commit
+- **Coverage:** 80%+ required (see `pyproject.toml`)
+- **No hardcoded secrets:** Enforced by Gitleaks and reviewed in repo history
+
 ## Features
 
 - Extracts track titles from YouTube playlists (yt-dlp or YouTube Data API v3)
@@ -21,6 +31,31 @@ Sync YouTube playlists to Spotify playlists with robust matching, progress bar, 
 - Local cache for (artist, title) → track_id (planned)
 - Regression test suite for matching logic
 - Secure credential management via `.env` or environment variables
+
+## 🛡️ Security & CI
+- **Gitleaks**: `.gitleaks.toml` with custom `SPOTIPY_...` and generic secret regexes
+- **Pre-commit**: `.pre-commit-config.yaml` runs Gitleaks, Ruff, and Pytest on every commit
+- **No secrets**: Repo and history are clean of 32+ char secrets and common credential patterns
+
+## 🧪 Testing
+- All tests in `tests/` run automatically on commit
+- Coverage threshold: 80% (see `pyproject.toml`)
+- Linting and type checks enforced
+
+## 🚀 Quickstart
+1. `pip install -r requirements-dev.txt`
+2. `pre-commit install`
+3. Add your `.env` with Spotify credentials
+4. Run: `python -m yt2spotify ...` or use the CLI
+
+## Development
+- See `.pre-commit-config.yaml` for hooks
+- See `.gitleaks.toml` for secret scanning rules
+- See `pyproject.toml` for config, dependencies, and coverage
+
+---
+
+_This project is maintained with automated quality gates and secret scanning. All contributions are checked for security, lint, and test compliance before commit._
 
 ## Installation
 

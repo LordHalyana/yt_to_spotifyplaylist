@@ -30,3 +30,18 @@ where = ["yt2spotify"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=yt2spotify --cov-report=term-missing --cov-fail-under=80"
+
+[project.optional-dependencies]
+dev = [
+    "rich",
+    "pytest",
+    "pytest-cov",
+    "wheel",
+    "setuptools>=68",
+    "aiohttp",
+    "python-dotenv",
+    "tqdm",
+    "yt-dlp",
+    "spotipy",
+    "rapidfuzz"
+]

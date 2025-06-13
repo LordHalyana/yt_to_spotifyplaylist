@@ -6,6 +6,7 @@ from spotipy.oauth2 import SpotifyOAuth
 from yt2spotify.utils import get_spotify_credentials
 from yt2spotify.cache import TrackCache
 from urllib.parse import quote
+from yt2spotify.logging_config import logger
 
 # --- YouTube helpers ---
 def get_yt_playlist_titles(playlist_url: str) -> List[str]:
@@ -65,7 +66,7 @@ async def async_spotify_search_batch(
     for i, (artist, title, query) in enumerate(queries):
         if not query.strip():
             # Log skipped queries
-            print(f'Skipping: "{title}" - "{artist}" - in playlist - skipping (empty query)')
+            logger.info(f'Skipping: "{title}" - "{artist}" - in playlist - skipping (empty query)')
             continue
         url = f"https://api.spotify.com/v1/search?q={quote(query)}&type=track&limit=1"
         tasks.append((i, artist, title, url))
@@ -75,7 +76,7 @@ async def async_spotify_search_batch(
             async with session.get(url, headers=headers) as resp:
                 if resp.status == 429:
                     retry_after = float(resp.headers.get('Retry-After', backoff))
-                    print(f"Rate limit hit. Retrying after {retry_after} seconds.")
+                    logger.info(f"Rate limit hit. Retrying after {retry_after} seconds.")
                     await asyncio.sleep(retry_after)
                     backoff = min(backoff * 2, max_backoff)
                     continue
@@ -84,13 +85,13 @@ async def async_spotify_search_batch(
                         text = await resp.text()
                     except Exception:
                         text = "<no response body>"
-                    print(f"Spotify API error {resp.status} for {url}: {text}")
+                    logger.warning(f"Spotify API error {resp.status} for {url}: {text}")
                     await asyncio.sleep(2)  # Wait longer after error
                     return (idx, artist, title, None, None)
                 content_type = resp.headers.get('Content-Type', '')
                 if 'application/json' not in content_type:
                     text = await resp.text()
-                    print(f"Unexpected content type {content_type} for {url}: {text}")
+                    logger.warning(f"Unexpected content type {content_type} for {url}: {text}")
                     await asyncio.sleep(2)  # Wait longer after error
                     return (idx, artist, title, None, None)
                 data = await resp.json()
@@ -123,7 +124,7 @@ async def async_search_with_cache(
     results: List[Tuple[str, str, Optional[str]]] = [(artist, title, None) for artist, title, _ in queries]
     for i, (artist, title, query) in enumerate(queries):
         if not query.strip():
-            print(f'Skipping: "{title}" - "{artist}" - in playlist - skipping (empty query)')
+            logger.info(f'Skipping: "{title}" - "{artist}" - in playlist - skipping (empty query)')
             continue
         cached_id = cache.get(artist, title)
         if cached_id:

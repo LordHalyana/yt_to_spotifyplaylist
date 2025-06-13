@@ -49,11 +49,12 @@ def test_dummy_for_coverage():
     # Minimal call to cover a line in core.py (e.g., import or a simple function)
     assert True
 
-def test_async_search_with_cache_empty_query(capsys):
+def test_async_search_with_cache_empty_query(caplog):
     queries = [('artist', 'title', '')]  # Empty query triggers print/log path
     cache = TrackCache(':memory:')
     sp = DummySP()
-    result = asyncio.run(async_search_with_cache(sp, queries, cache))
+    with caplog.at_level("INFO"):
+        result = asyncio.run(async_search_with_cache(sp, queries, cache))
     assert result == [('artist', 'title', None)]
-    out = capsys.readouterr().out
-    assert 'skipping (empty query)' in out.lower()
+    log_output = " ".join(record.getMessage().lower() for record in caplog.records)
+    assert 'skipping (empty query)' in log_output
