@@ -26,7 +26,7 @@ license = "MIT"
 yt2spotify = "yt2spotify.cli:main"
 
 [tool.setuptools.packages.find]
-where = ["yt2spotify"]
+where = ["."]
 
 [tool.pytest.ini_options]
 addopts = "--cov=yt2spotify --cov-report=term-missing --cov-fail-under=80"
