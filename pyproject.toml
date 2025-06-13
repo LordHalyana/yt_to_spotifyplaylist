@@ -18,7 +18,8 @@ dependencies = [
     "pytest",
     "pytest-cov",
     "rapidfuzz",
-    "google-api-python-client"
+    "google-api-python-client",
+    "toml"
 ]
 requires-python = ">=3.8"
 license = "MIT"
@@ -45,5 +46,6 @@ dev = [
     "yt-dlp",
     "spotipy",
     "rapidfuzz",
-    "google-api-python-client"
+    "google-api-python-client",
+    "toml"
 ]
