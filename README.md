@@ -52,6 +52,16 @@ Sync YouTube playlists to Spotify playlists with robust matching, progress bar, 
 3. Add your `.env` with Spotify credentials
 4. Run: `python -m yt2spotify ...` or use the CLI
 
+## 🛠️ Development Setup
+
+To enable automatic code formatting, linting, and secret scanning on every commit, install pre-commit hooks:
+
+```sh
+pre-commit install
+```
+
+This will ensure `ruff`, `black`, and `gitleaks` run before every commit.
+
 ## Development
 
 - See `.pre-commit-config.yaml` for hooks
