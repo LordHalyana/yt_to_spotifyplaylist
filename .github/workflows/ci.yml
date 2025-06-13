@@ -43,4 +43,4 @@ jobs:
           coverage report --include="yt2spotify/core.py" --fail-under=70
       - name: Validate JSON/CSV outputs
         run: |
-          pytest tests/test_json_csv_validation.py
+          pytest --cov=yt2spotify tests/test_json_csv_validation.py --cov-report=term-missing
