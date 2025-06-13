@@ -12,6 +12,7 @@ from tqdm import tqdm
 import argparse
 import toml
 import os
+import json
 
 console = Console()
 
@@ -40,16 +41,27 @@ def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
     with open(path, "r", encoding="utf-8") as f:
         return toml.load(f)
 
+# Set up output and log directories
+OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "output")
+LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(LOG_DIR, exist_ok=True)
+
+ADDED_SONGS_PATH = os.path.join(OUTPUT_DIR, "added_songs.json")
+NOT_FOUND_SONGS_PATH = os.path.join(OUTPUT_DIR, "not_found_songs.json")
+LOG_PATH = os.path.join(LOG_DIR, "run_log.csv")
+MISSING_ON_SPOTIFY_PATH = os.path.join(OUTPUT_DIR, "missing_on_spotify.json")
+
 def sync_command(
-    yt_url,
-    playlist_id,
-    dry_run=False,
-    no_progress=False,
-    verbose=False,
-    yt_api=None,
-    progress_wrapper=None,
-    config=None
-):
+    yt_url: str,
+    playlist_id: str,
+    dry_run: bool = False,
+    no_progress: bool = False,
+    verbose: bool = False,
+    yt_api: Optional[str] = None,
+    progress_wrapper: Optional[Any] = None,
+    config: Optional[dict[str, Any]] = None
+) -> None:
     """
     Main sync logic. Accepts config dict for stop-words, thresholds, and backoff.
     """
@@ -60,11 +72,13 @@ def sync_command(
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)
+    print("## Working on Youtube Titles ##")
     # Fetch YouTube playlist titles
     if yt_api:
         titles = yt_api_fetch(yt_api, yt_url)
     else:
         titles = get_yt_playlist_titles_yt_dlp(yt_url)
+    print("## Compiled Youtube Titles ##")
     sp = get_spotify_client()
     cache = TrackCache()
     queries = []
@@ -87,20 +101,55 @@ def sync_command(
         iterator = progress_wrapper(iterator, total=len(titles))
     elif not no_progress:
         iterator = tqdm(iterator, total=len(titles), desc="Syncing", unit="track")
+    added_songs = []
+    not_found_songs = []
+    skipped_songs = []
     for idx, (title, (artist, track, track_id)) in iterator:
-        if verbose:
-            tqdm.write(f"[{idx}] {artist} - {track} => {track_id}") if not no_progress else logger.debug(f"[{idx}] {artist} - {track} => {track_id}")
+        status = None
+        # Detect private/deleted/empty
+        if not (artist or track) or not title or title.strip().lower().startswith('[private') or title.strip().lower().startswith('[deleted'):
+            status = "private_or_deleted"
+            skipped_songs.append({"title": title, "artist": artist, "track": track, "status": status})
+            if verbose:
+                tqdm.write(f"  Skipped (private/deleted): {title}") if not no_progress else logger.debug(f"  Skipped (private/deleted): {title}")
+            continue
         if track_id and not dry_run:
             sp.playlist_add_items(playlist_id, [track_id])
             added_count += 1
+            status = "added"
+            added_songs.append({"title": title, "artist": artist, "track": track, "track_id": track_id, "status": status})
         elif track_id:
             added_count += 1
-        elif verbose:
-            tqdm.write(f"  Not found: {title}") if not no_progress else logger.debug(f"  Not found: {title}")
-    msg = f"Finished. {added_count} tracks added to Spotify playlist {playlist_id}."
+            status = "already_in_playlist"
+            added_songs.append({"title": title, "artist": artist, "track": track, "track_id": track_id, "status": status})
+        else:
+            status = "not_found"
+            not_found_songs.append({"title": title, "artist": artist, "track": track, "status": status})
+            if verbose:
+                tqdm.write(f"  Not found: {title}") if not no_progress else logger.debug(f"  Not found: {title}")
+    deleted_count = sum(1 for s in not_found_songs + skipped_songs if s.get("status") == "private_or_deleted")
+    missing_count = sum(1 for s in not_found_songs if s.get("status") == "not_found")
+    msg = (
+        f"Finished.\n"
+        f"{added_count} tracks added to Spotify playlist {playlist_id}.\n"
+        f"{deleted_count} tracks were deleted/private on YouTube.\n"
+        f"{missing_count} tracks were missing on Spotify."
+    )
     tqdm.write(msg) if not no_progress else logger.info(msg)
+    # Write output files
+    with open(ADDED_SONGS_PATH, "w", encoding="utf-8") as f:
+        json.dump(added_songs, f, ensure_ascii=False, indent=2)
+    with open(NOT_FOUND_SONGS_PATH, "w", encoding="utf-8") as f:
+        json.dump(not_found_songs + skipped_songs, f, ensure_ascii=False, indent=2)
+    # Write missing_on_spotify.json: only songs that are not found on Spotify and not private/deleted
+    missing_on_spotify = [
+        {"title": s["title"], "artist": s["artist"], "track": s["track"], "status": s["status"]}
+        for s in not_found_songs if s.get("status") == "not_found"
+    ]
+    with open(MISSING_ON_SPOTIFY_PATH, "w", encoding="utf-8") as f:
+        json.dump(missing_on_spotify, f, ensure_ascii=False, indent=2)
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description='Sync YouTube playlist to Spotify playlist')
     subparsers = parser.add_subparsers(dest='command', required=True)
     sync_parser = subparsers.add_parser('sync', help='Sync a YouTube playlist to a Spotify playlist')
