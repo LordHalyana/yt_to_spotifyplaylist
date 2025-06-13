@@ -24,20 +24,23 @@ Sync YouTube playlists to Spotify playlists with robust matching, progress bar, 
 
 ## Installation
 
-1. Clone the repository:
-   ```sh
-   git clone <your-repo-url>
-   cd yt_to_spotifyplaylist
-   ```
-2. Install dependencies:
-   ```sh
-   pip install -r requirements.txt
-   ```
-3. Copy and edit the example environment file:
-   ```sh
-   cp example_env.txt .env
-   # Fill in your Spotify credentials in .env
-   ```
+You can install directly from GitHub:
+
+```bash
+pip install git+https://github.com/LordHalyana/yt_to_spotifyplaylist
+```
+
+Or, for local development:
+
+```bash
+pip install .
+```
+
+After install, run:
+
+```bash
+yt2spotify --help
+```
 
 ## Usage
 
@@ -138,6 +141,61 @@ pytest
 ## License
 
 MIT License. See [LICENSE](LICENSE).
+
+## Troubleshooting the CLI on Windows
+
+If you see errors like:
+
+```
+yt2spotify : The term 'yt2spotify' is not recognized as the name of a cmdlet...
+```
+
+or
+
+```
+ModuleNotFoundError: No module named 'yt2spotify'
+```
+
+Try the following steps:
+
+1. **Check your Python and pip versions:**
+
+   ```powershell
+   python --version
+   pip --version
+   ```
+
+   Ensure both use the same Python installation (e.g., Python 3.11).
+
+2. **Find where yt2spotify was installed:**
+
+   ```powershell
+   pip show yt2spotify
+   ```
+
+   Look for the `Location:` and `Scripts` directory.
+
+3. **Add the Scripts directory to your PATH for this session:**
+
+   ```powershell
+   $env:PATH = "<path-to-Scripts>;$env:PATH"
+   yt2spotify --help
+   ```
+
+   Replace `<path-to-Scripts>` with the path from step 2, e.g.,
+   `C:\Users\<username>\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\Scripts`
+
+4. **If you still get errors, use the Python module directly:**
+   ```powershell
+   python -m yt2spotify.cli --help
+   ```
+
+If you continue to have issues, try uninstalling and reinstalling:
+
+```powershell
+pip uninstall yt2spotify
+pip install . --no-warn-script-location
+```
 
 ---
 
