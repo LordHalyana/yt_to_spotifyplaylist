@@ -1,40 +1,7 @@
 import pytest
-import unicodedata
-import re
-from difflib import SequenceMatcher
 from unittest.mock import patch
-try:
-    from rapidfuzz.fuzz import token_set_ratio
-    from rapidfuzz.distance import JaroWinkler
-except ImportError:
-    token_set_ratio = None
-    JaroWinkler = None
 from yt2spotify.utils import clean_title, parse_artist_track
-
-def is_reasonable_match(searched_artist, searched_title, found_artist, found_title):
-    searched_artist = (searched_artist or '').lower().strip()
-    searched_title = (searched_title or '').lower().strip()
-    found_artist = (found_artist or '').lower().strip()
-    found_title = (found_title or '').lower().strip()
-    artist_match = all(word in found_artist for word in searched_artist.split() if word)
-    if not artist_match:
-        return False
-    jw_score = 0
-    tsr_score = 0
-    if JaroWinkler:
-        jw_score = JaroWinkler.normalized_similarity(searched_title, found_title)
-    else:
-        jw_score = SequenceMatcher(None, searched_title, found_title).ratio()
-    if token_set_ratio:
-        tsr_score = token_set_ratio(searched_title, found_title)
-    else:
-        searched_set = set(searched_title.split())
-        found_set = set(found_title.split())
-        if searched_set:
-            tsr_score = 100 * len(searched_set & found_set) / len(searched_set)
-        else:
-            tsr_score = 0
-    return (jw_score >= 0.90) or (tsr_score >= 95)
+from yt2spotify.matching import is_reasonable_match
 
 # Replace test_data with a more general regression suite
 TEST_CASES = [

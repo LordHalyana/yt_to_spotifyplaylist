@@ -1,0 +1,8 @@
+# Default configuration for yt2spotify
+stop_words = [
+  "official", "audio", "video", "unreleased", "music", "visualizer", "by", "with", "remix", "version", "explicit", "clean", "lyrics", "lyric", "clip", "HD", "HQ"
+]
+jw_threshold = 0.90
+token_set_threshold = 95
+backoff_initial = 1.0
+backoff_max = 60.0

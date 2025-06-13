@@ -1,5 +1,9 @@
 # yt2spotify
 
+[![Build Status](https://github.com/YOUR_GITHUB_USERNAME/yt_to_spotifyplaylist/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_GITHUB_USERNAME/yt_to_spotifyplaylist/actions/workflows/ci.yml)
+[![PyPI version](https://badge.fury.io/py/yt2spotify.svg)](https://badge.fury.io/py/yt2spotify)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Sync YouTube playlists to Spotify playlists with robust matching, progress bar, and regression-tested logic.
 
 ## Features
@@ -46,7 +50,8 @@ yt2spotify <yt_url> <spotify_playlist_id> --yt-api <YOUR_YT_API_KEY>
 ```
 
 - `--dry-run`: Only logs what would be added, does not modify the playlist.
-- Progress bar shows total, processed, and added tracks.
+- Progress bar shows total, processed, and added tracks. Use `--no-progress` to disable the progress bar and fall back to plain logging.
+- `--yt-api-key`: Use the YouTube Data API v3 for playlist fetching (with fallback to yt-dlp on quota/missing key).
 
 ## Credentials
 
@@ -80,7 +85,7 @@ pytest
 
 ## License
 
-MIT
+MIT License. See [LICENSE](LICENSE).
 
 ---
 

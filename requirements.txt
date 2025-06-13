@@ -5,3 +5,4 @@ tqdm
 aiohttp
 pytest
 rapidfuzz
+rich

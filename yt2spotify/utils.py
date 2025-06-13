@@ -1,9 +1,17 @@
 import os
+from typing import Tuple, Optional
 from dotenv import load_dotenv
 import unicodedata
 import re
 
-def get_spotify_credentials():
+def get_spotify_credentials() -> Tuple[str, str, str]:
+    """
+    Loads Spotify credentials from environment or .env file.
+    Returns:
+        Tuple of (client_id, client_secret, redirect_uri).
+    Raises:
+        RuntimeError: If any credential is missing.
+    """
     load_dotenv()
     client_id = os.getenv('SPOTIPY_CLIENT_ID')
     client_secret = os.getenv('SPOTIPY_CLIENT_SECRET')
@@ -17,9 +25,18 @@ def get_spotify_credentials():
         missing.append('SPOTIPY_REDIRECT_URI')
     if missing:
         raise RuntimeError(f"Missing required Spotify credentials: {', '.join(missing)}. Set them in your environment or a .env file.")
+    # mypy: assert all are str
+    assert client_id is not None and client_secret is not None and redirect_uri is not None
     return client_id, client_secret, redirect_uri
 
-def clean_title(title):
+def clean_title(title: str) -> str:
+    """
+    Cleans and normalizes a track title for matching/searching.
+    Args:
+        title: The original title string.
+    Returns:
+        A cleaned, normalized title string.
+    """
     title = unicodedata.normalize('NFKC', title).casefold()
     title = re.sub(r'\[.*?\]', '', title)
     title = re.sub(r'\(.*?\)', '', title)
@@ -28,7 +45,14 @@ def clean_title(title):
     title = re.sub(r'\s+', ' ', title)
     return title.strip()
 
-def parse_artist_track(title):
+def parse_artist_track(title: str) -> Tuple[Optional[str], str]:
+    """
+    Attempts to parse an artist and track from a title string.
+    Args:
+        title: The original title string.
+    Returns:
+        Tuple of (artist, track). Artist may be None if not found.
+    """
     title = unicodedata.normalize('NFKC', title).casefold()
     title = re.sub(r'\[(feat\.|ft\.|featuring)[^\]]*\]', '', title, flags=re.IGNORECASE)
     title = re.sub(r'\((feat\.|ft\.|featuring)[^\)]*\)', '', title, flags=re.IGNORECASE)

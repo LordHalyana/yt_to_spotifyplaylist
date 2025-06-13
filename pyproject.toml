@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yt2spotify"
+version = "0.1.0"
+description = "Sync YouTube playlists to Spotify playlists"
+authors = [
+    {name = "Your Name"}
+]
+dependencies = [
+    "spotipy",
+    "yt-dlp",
+    "python-dotenv",
+    "tqdm",
+    "aiohttp",
+    "pytest",
+    "rapidfuzz"
+]
+requires-python = ">=3.8"
+license = "MIT"
+
+[project.scripts]
+yt2spotify = "yt2spotify.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["yt2spotify"]
