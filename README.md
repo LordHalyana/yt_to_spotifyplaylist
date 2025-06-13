@@ -9,6 +9,7 @@ Sync YouTube playlists to Spotify playlists with robust matching, progress bar, 
 ---
 
 ## 🚦 Quality Gates
+
 - **Pre-commit hooks:**
   - [x] Gitleaks: Automated secret scanning with custom and standard rules (`.gitleaks.toml`)
   - [x] Ruff: Linting for Python code
@@ -33,22 +34,26 @@ Sync YouTube playlists to Spotify playlists with robust matching, progress bar, 
 - Secure credential management via `.env` or environment variables
 
 ## 🛡️ Security & CI
+
 - **Gitleaks**: `.gitleaks.toml` with custom `SPOTIPY_...` and generic secret regexes
 - **Pre-commit**: `.pre-commit-config.yaml` runs Gitleaks, Ruff, and Pytest on every commit
 - **No secrets**: Repo and history are clean of 32+ char secrets and common credential patterns
 
 ## 🧪 Testing
+
 - All tests in `tests/` run automatically on commit
 - Coverage threshold: 80% (see `pyproject.toml`)
 - Linting and type checks enforced
 
 ## 🚀 Quickstart
+
 1. `pip install -r requirements-dev.txt`
 2. `pre-commit install`
 3. Add your `.env` with Spotify credentials
 4. Run: `python -m yt2spotify ...` or use the CLI
 
 ## Development
+
 - See `.pre-commit-config.yaml` for hooks
 - See `.gitleaks.toml` for secret scanning rules
 - See `pyproject.toml` for config, dependencies, and coverage
