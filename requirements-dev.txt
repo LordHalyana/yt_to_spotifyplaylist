@@ -1,0 +1,7 @@
+# Development requirements for yt2spotify
+ruff
+mypy
+pytest
+rich
+toml
+google-api-python-client
