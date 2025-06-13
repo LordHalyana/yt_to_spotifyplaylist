@@ -75,6 +75,7 @@ async def async_spotify_search_batch(
             async with session.get(url, headers=headers) as resp:
                 if resp.status == 429:
                     retry_after = float(resp.headers.get('Retry-After', backoff))
+                    print(f"Rate limit hit. Retrying after {retry_after} seconds.")
                     await asyncio.sleep(retry_after)
                     backoff = min(backoff * 2, max_backoff)
                     continue
@@ -84,16 +85,18 @@ async def async_spotify_search_batch(
                     except Exception:
                         text = "<no response body>"
                     print(f"Spotify API error {resp.status} for {url}: {text}")
+                    await asyncio.sleep(2)  # Wait longer after error
                     return (idx, artist, title, None, None)
                 content_type = resp.headers.get('Content-Type', '')
                 if 'application/json' not in content_type:
                     text = await resp.text()
                     print(f"Unexpected content type {content_type} for {url}: {text}")
+                    await asyncio.sleep(2)  # Wait longer after error
                     return (idx, artist, title, None, None)
                 data = await resp.json()
                 items = data.get('tracks', {}).get('items', [])
                 track_id = items[0]['id'] if items else None
-                await asyncio.sleep(1)  # Respectful 1 second delay between Spotify requests
+                await asyncio.sleep(1.5)  # Increase delay to 1.5s to avoid rate limits
                 return (idx, artist, title, track_id, data)
     coros = [fetch(idx, artist, title, url) for idx, artist, title, url in tasks]
     for fut in asyncio.as_completed(coros):

@@ -72,63 +72,140 @@ def sync_command(
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)
+    # 1. Gather all YouTube titles and filter out private/deleted
     print("## Working on Youtube Titles ##")
-    # Fetch YouTube playlist titles
     if yt_api:
         titles = yt_api_fetch(yt_api, yt_url)
     else:
         titles = get_yt_playlist_titles_yt_dlp(yt_url)
     print("## Compiled Youtube Titles ##")
-    sp = get_spotify_client()
-    cache = TrackCache()
-    queries = []
-    stop_words = set(config.get("stop_words", []))
+
+    # Parse and filter YouTube titles
+    parsed = []
+    skipped_songs = []
     for title in titles:
         artist, track = parse_artist_track(title)
-        # Remove stop words from query
+        if not (artist or track) or not title or title.strip().lower().startswith('[private') or title.strip().lower().startswith('[deleted'):
+            skipped_songs.append({"title": title, "artist": artist, "track": track, "status": "private_or_deleted"})
+        else:
+            parsed.append((title, artist, track))
+    # Write skipped to output immediately
+    with open(NOT_FOUND_SONGS_PATH, "w", encoding="utf-8") as f:
+        json.dump(skipped_songs, f, ensure_ascii=False, indent=2)
+
+    # Get all track IDs in the Spotify playlist (avoid duplicates)
+    sp = get_spotify_client()
+    playlist_tracks = set()
+    results = sp.playlist_tracks(playlist_id)
+    while results:
+        for item in results.get("items", []):
+            track = item.get("track")
+            if track and track.get("id"):
+                playlist_tracks.add(track["id"])
+        results = sp.next(results) if results.get("next") else None
+
+    # Prepare queries for only non-private/deleted
+    queries = []
+    for title, artist, track in parsed:
         query = f"artist:{artist} track:{track}" if artist else clean_title(title)
-        for word in stop_words:
-            query = query.replace(word, "")
-        queries.append((artist or '', track or '', query.strip()))
-    # Async search with cache
+        queries.append((artist or '', track or '', query.strip(), title))
+
+    # Async search with cache (only for tracks not already in playlist)
+    cache = TrackCache()
+    search_queries = [(a, t, q) for a, t, q, _ in queries]
     loop = asyncio.get_event_loop()
-    # Pass thresholds and backoff to async_search_with_cache via config if needed
-    results = loop.run_until_complete(async_search_with_cache(sp, queries, cache))
+    search_results = loop.run_until_complete(async_search_with_cache(sp, search_queries, cache))
+
+    # Get batch size and delay from config or use defaults
+    batch_size = int(config.get("batch_size", 25))
+    batch_delay = float(config.get("batch_delay", 2.0))
+    max_retries = int(config.get("max_retries", 5))
+    backoff_factor = float(config.get("backoff_factor", 2.0))
+
+    # Build a set of track IDs already in the playlist for deduplication
     added_count = 0
-    iterator = enumerate(zip(titles, results), 1)
-    # Universal progress bar logic
-    if progress_wrapper is not None:
-        iterator = progress_wrapper(iterator, total=len(titles))
-    elif not no_progress:
-        iterator = tqdm(iterator, total=len(titles), desc="Syncing", unit="track")
+    batch = []
     added_songs = []
     not_found_songs = []
-    skipped_songs = []
-    for idx, (title, (artist, track, track_id)) in iterator:
-        status = None
-        # Detect private/deleted/empty
-        if not (artist or track) or not title or title.strip().lower().startswith('[private') or title.strip().lower().startswith('[deleted'):
-            status = "private_or_deleted"
-            skipped_songs.append({"title": title, "artist": artist, "track": track, "status": status})
-            if verbose:
-                tqdm.write(f"  Skipped (private/deleted): {title}") if not no_progress else logger.debug(f"  Skipped (private/deleted): {title}")
+    for (artist, track, query, title), (_, _, track_id) in zip(queries, search_results):
+        if track_id and track_id in playlist_tracks:
+            # Already in playlist, skip adding
+            added_songs.append({"title": title, "artist": artist, "track": track, "track_id": track_id, "status": "already_in_playlist"})
             continue
         if track_id and not dry_run:
-            sp.playlist_add_items(playlist_id, [track_id])
+            batch.append(track_id)
+            added_songs.append({"title": title, "artist": artist, "track": track, "track_id": track_id, "status": "added"})
+            if len(batch) == batch_size:
+                # Robust Spotify add with rate limit handling
+                retries = 0
+                while True:
+                    try:
+                        sp.playlist_add_items(playlist_id, batch)
+                        break
+                    except Exception as e:
+                        # Try to extract Retry-After from exception (spotipy uses requests)
+                        retry_after = None
+                        if hasattr(e, 'headers') and hasattr(getattr(e, 'headers'), 'get'):
+                            retry_after = getattr(e, 'headers').get('Retry-After')
+                        if hasattr(e, 'http_status') and getattr(e, 'http_status') == 429:
+                            if retry_after is not None:
+                                try:
+                                    wait = float(retry_after)
+                                except Exception:
+                                    wait = batch_delay * (backoff_factor ** retries)
+                            else:
+                                wait = batch_delay * (backoff_factor ** retries)
+                            logger.warning(f"Spotify rate limit hit. Retrying after {wait:.1f}s (retry {retries+1}/{max_retries})...")
+                            import time; time.sleep(wait)
+                            retries += 1
+                            if retries >= max_retries:
+                                logger.error("Max retries reached for Spotify rate limit. Skipping batch.")
+                                break
+                        else:
+                            logger.error(f"Spotify API error: {e}")
+                            break
+                batch.clear()
+                import time; time.sleep(batch_delay)
             added_count += 1
-            status = "added"
-            added_songs.append({"title": title, "artist": artist, "track": track, "track_id": track_id, "status": status})
         elif track_id:
-            added_count += 1
-            status = "already_in_playlist"
-            added_songs.append({"title": title, "artist": artist, "track": track, "track_id": track_id, "status": status})
+            added_songs.append({"title": title, "artist": artist, "track": track, "track_id": track_id, "status": "already_in_playlist"})
         else:
-            status = "not_found"
-            not_found_songs.append({"title": title, "artist": artist, "track": track, "status": status})
-            if verbose:
-                tqdm.write(f"  Not found: {title}") if not no_progress else logger.debug(f"  Not found: {title}")
-    deleted_count = sum(1 for s in not_found_songs + skipped_songs if s.get("status") == "private_or_deleted")
-    missing_count = sum(1 for s in not_found_songs if s.get("status") == "not_found")
+            not_found_songs.append({"title": title, "artist": artist, "track": track, "status": "not_found"})
+    if batch and not dry_run:
+        retries = 0
+        while True:
+            try:
+                sp.playlist_add_items(playlist_id, batch)
+                break
+            except Exception as e:
+                retry_after = None
+                if hasattr(e, 'headers') and hasattr(getattr(e, 'headers'), 'get'):
+                    retry_after = getattr(e, 'headers').get('Retry-After')
+                if hasattr(e, 'http_status') and getattr(e, 'http_status') == 429:
+                    if retry_after is not None:
+                        try:
+                            wait = float(retry_after)
+                        except Exception:
+                            wait = batch_delay * (backoff_factor ** retries)
+                    else:
+                        wait = batch_delay * (backoff_factor ** retries)
+                    logger.warning(f"Spotify rate limit hit. Retrying after {wait:.1f}s (retry {retries+1}/{max_retries})...")
+                    import time; time.sleep(wait)
+                    retries += 1
+                    if retries >= max_retries:
+                        logger.error("Max retries reached for Spotify rate limit. Skipping batch.")
+                        break
+                else:
+                    logger.error(f"Spotify API error: {e}")
+                    break
+        import time; time.sleep(batch_delay)
+
+    # Merge skipped and not found for output
+    with open(NOT_FOUND_SONGS_PATH, "w", encoding="utf-8") as f:
+        json.dump(not_found_songs + skipped_songs, f, ensure_ascii=False, indent=2)
+
+    deleted_count = len(skipped_songs)
+    missing_count = len(not_found_songs)
     msg = (
         f"Finished.\n"
         f"{added_count} tracks added to Spotify playlist {playlist_id}.\n"
@@ -136,12 +213,8 @@ def sync_command(
         f"{missing_count} tracks were missing on Spotify."
     )
     tqdm.write(msg) if not no_progress else logger.info(msg)
-    # Write output files
     with open(ADDED_SONGS_PATH, "w", encoding="utf-8") as f:
         json.dump(added_songs, f, ensure_ascii=False, indent=2)
-    with open(NOT_FOUND_SONGS_PATH, "w", encoding="utf-8") as f:
-        json.dump(not_found_songs + skipped_songs, f, ensure_ascii=False, indent=2)
-    # Write missing_on_spotify.json: only songs that are not found on Spotify and not private/deleted
     missing_on_spotify = [
         {"title": s["title"], "artist": s["artist"], "track": s["track"], "status": s["status"]}
         for s in not_found_songs if s.get("status") == "not_found"

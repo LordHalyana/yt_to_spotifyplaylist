@@ -65,6 +65,24 @@ yt2spotify sync <yt_url> <spotify_playlist_id> --config path/to/config.toml
 - `--yt-api-key`: Use the YouTube Data API v3 for playlist fetching (with fallback to yt-dlp on quota/missing key).
 - `--config`: Path to a TOML config file (overrides package default).
 
+#### Configurable Rate Limit & Batching (TOML)
+
+You can control Spotify API batching and rate limit handling via your TOML config file:
+
+```toml
+# Number of tracks to add to Spotify in each batch (default: 25, max: 100)
+batch_size = 25
+# Delay (in seconds) between each batch addition to Spotify (default: 2.0)
+batch_delay = 2.0
+# Maximum number of retries for a batch if rate limited (default: 5)
+max_retries = 5
+# Exponential backoff factor for repeated 429s (default: 2.0)
+backoff_factor = 2.0
+```
+
+- These options ensure robust handling of Spotify's API rate limits and allow tuning for large playlists or slow connections.
+- The tool will respect the `Retry-After` header from Spotify and use exponential backoff if rate limited repeatedly.
+
 #### Output Files
 
 - `output/added_songs.json`: Tracks added to Spotify (with status: `added` or `already_in_playlist`).

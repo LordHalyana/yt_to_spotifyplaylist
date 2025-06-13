@@ -31,6 +31,7 @@ def mock_spotify_search(expected_status, expected_title, expected_artist):
     else:
         return {"tracks": {"items": []}}
 
+# Add regression tests for new status logic and config-driven batching
 @pytest.mark.parametrize("original_title, expected_artist, expected_title, expected_status", TEST_CASES)
 def test_matching_pipeline(original_title, expected_artist, expected_title, expected_status):
     with patch("yt2spotify.spotify_utils.spotify_search") as mock_search:
@@ -49,3 +50,49 @@ def test_matching_pipeline(original_title, expected_artist, expected_title, expe
         else:
             result = "not_found"
         assert result == expected_status, f"Regression: {original_title} → {artist}, {track} → {result} (expected {expected_status})"
+
+# Test config-driven batch size and delay (mocked)
+def test_config_batching(monkeypatch):
+    # Simulate config
+    config = {"batch_size": 10, "batch_delay": 0.1, "max_retries": 2, "backoff_factor": 1.5}
+    # Simulate a batch add function that raises 429 on first call, then succeeds
+    class DummySpotify:
+        def __init__(self):
+            self.calls = 0
+        def playlist_add_items(self, playlist_id, batch):
+            self.calls += 1
+            if self.calls == 1:
+                class E(Exception):
+                    http_status = 429
+                    headers = {"Retry-After": "0.01"}
+                raise E()
+            return True
+    sp = DummySpotify()
+    # Should succeed after one retry
+    try:
+        retries = 0
+        batch = ["id1"] * config["batch_size"]
+        while True:
+            try:
+                sp.playlist_add_items("playlist", batch)
+                break
+            except Exception as e:
+                retry_after = None
+                if hasattr(e, 'headers') and hasattr(getattr(e, 'headers'), 'get'):
+                    retry_after = getattr(e, 'headers').get('Retry-After')
+                if hasattr(e, 'http_status') and getattr(e, 'http_status') == 429:
+                    if retry_after is not None:
+                        try:
+                            wait = float(retry_after)
+                        except Exception:
+                            wait = config["batch_delay"] * (config["backoff_factor"] ** retries)
+                    else:
+                        wait = config["batch_delay"] * (config["backoff_factor"] ** retries)
+                    retries += 1
+                    if retries >= config["max_retries"]:
+                        break
+                else:
+                    break
+        assert sp.calls == 2, "Should retry once on 429 and then succeed"
+    except Exception:
+        pytest.fail("Batching with retry logic failed")

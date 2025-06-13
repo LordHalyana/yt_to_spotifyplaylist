@@ -6,3 +6,13 @@ jw_threshold = 0.90
 token_set_threshold = 95
 backoff_initial = 1.0
 backoff_max = 60.0
+
+# --- Spotify API rate limit and batching options ---
+# Number of tracks to add to Spotify in each batch (default: 25, max: 100)
+batch_size = 25
+# Delay (in seconds) between each batch addition to Spotify (default: 2.0)
+batch_delay = 2.0
+# Maximum number of retries for a batch if rate limited (default: 5)
+max_retries = 5
+# Exponential backoff factor for repeated 429s (default: 2.0)
+backoff_factor = 2.0
