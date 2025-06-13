@@ -1951,5 +1951,12 @@
     "track": "one more time",
     "track_id": "TRACK_ID_1",
     "status": "already_in_playlist"
+  },
+  {
+    "title": "Daft Punk - One More Time",
+    "artist": "daft punk",
+    "track": "one more time",
+    "track_id": "TRACK_ID_1",
+    "status": "already_in_playlist"
   }
 ]

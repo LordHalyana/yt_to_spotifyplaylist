@@ -7,3 +7,4 @@ rich
 toml
 google-api-python-client
 types-toml
+pytest-asyncio

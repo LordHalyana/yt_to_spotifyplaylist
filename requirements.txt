@@ -7,3 +7,4 @@ pytest
 pytest-cov
 rapidfuzz
 rich
+pytest-asyncio
