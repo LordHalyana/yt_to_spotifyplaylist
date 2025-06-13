@@ -29,4 +29,4 @@ yt2spotify = "yt2spotify.cli:main"
 where = ["yt2spotify"]
 
 [tool.pytest.ini_options]
-addopts = "--cov=yt2spotify --cov-report=term-missing --cov-fail-under=20"
+addopts = "--cov=yt2spotify --cov-report=term-missing --cov-fail-under=80"
