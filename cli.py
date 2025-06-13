@@ -1,11 +1,9 @@
-import sys
 import asyncio
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, Optional
 from rich.logging import RichHandler
 from rich.console import Console
 from yt2spotify.core import get_spotify_client, async_search_with_cache
-from yt2spotify.spotify_utils import spotify_search
 from yt2spotify.yt_utils import get_yt_playlist_titles_yt_dlp
 from yt2spotify.youtube import get_yt_playlist_titles_api as yt_api_fetch
 from yt2spotify.utils import clean_title, parse_artist_track

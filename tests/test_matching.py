@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import patch
-from yt2spotify.utils import clean_title, parse_artist_track
-from yt2spotify.matching import is_reasonable_match
+from yt2spotify.utils import parse_artist_track
 
 # Replace test_data with a more general regression suite
 TEST_CASES = [

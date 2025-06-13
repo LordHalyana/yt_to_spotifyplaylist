@@ -1,6 +1,5 @@
 import yt_dlp
 from typing import List
-from yt2spotify.utils import clean_title, parse_artist_track
 
 def get_yt_playlist_titles_yt_dlp(playlist_url: str) -> List[str]:
     """

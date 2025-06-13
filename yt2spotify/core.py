@@ -3,7 +3,7 @@ import asyncio
 import aiohttp
 from typing import List, Tuple, Optional, Any
 from spotipy.oauth2 import SpotifyOAuth
-from yt2spotify.utils import get_spotify_credentials, clean_title, parse_artist_track
+from yt2spotify.utils import get_spotify_credentials
 from yt2spotify.cache import TrackCache
 
 # --- YouTube helpers ---

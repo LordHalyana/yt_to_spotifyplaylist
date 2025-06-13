@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-from yt2spotify.utils import clean_title, parse_artist_track
 
 def get_spotify_credentials():
     load_dotenv()

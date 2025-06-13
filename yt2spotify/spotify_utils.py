@@ -1,7 +1,7 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
-from typing import Any, Dict
-from yt2spotify.utils import get_spotify_credentials, clean_title, parse_artist_track
+from typing import Any
+from yt2spotify.utils import get_spotify_credentials
 
 def get_spotify_client() -> spotipy.Spotify:
     """

@@ -1,5 +1,3 @@
-from typing import Any
-
 def main() -> None:
     """
     Entry point for the yt2spotify package when run as a script.
