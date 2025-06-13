@@ -47,7 +47,7 @@ Sync YouTube playlists to Spotify playlists with robust matching, progress bar, 
 
 ## 🚀 Quickstart
 
-1. `pip install .[dev]`  # Installs all dependencies using pyproject.toml
+1. `pip install .[dev]` # Installs all dependencies using pyproject.toml
 2. `pre-commit install`
 3. Add your `.env` with Spotify credentials
 4. Run: `python -m yt2spotify ...` or use the CLI
