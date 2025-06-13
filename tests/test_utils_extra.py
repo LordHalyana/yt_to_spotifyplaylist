@@ -41,7 +41,7 @@ def test_parse_artist_track_with_unicode_dash():
 def test_parse_artist_track_trailing_keywords():
     artist, track = utils.parse_artist_track("Artist - Song (Live 2021)")
     assert artist == "artist"
-    assert track == "song ("
+    assert track == "song"
 
 
 def test_parse_artist_track_no_artist():

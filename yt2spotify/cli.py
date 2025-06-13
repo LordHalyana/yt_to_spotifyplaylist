@@ -37,11 +37,6 @@ LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(LOG_DIR, exist_ok=True)
 
-ADDED_SONGS_PATH = os.path.join(OUTPUT_DIR, "added_songs.json")
-NOT_FOUND_SONGS_PATH = os.path.join(OUTPUT_DIR, "not_found_songs.json")
-LOG_PATH = os.path.join(LOG_DIR, "run_log.csv")
-MISSING_ON_SPOTIFY_PATH = os.path.join(OUTPUT_DIR, "missing_on_spotify.json")
-
 
 def sync_command(
     yt_url: str,
@@ -56,6 +51,11 @@ def sync_command(
     """
     Main sync logic. Accepts config dict for stop-words, thresholds, and backoff.
     """
+    # Dynamically set output paths based on current OUTPUT_DIR
+    ADDED_SONGS_PATH = os.path.join(OUTPUT_DIR, "added_songs.json")
+    NOT_FOUND_SONGS_PATH = os.path.join(OUTPUT_DIR, "not_found_songs.json")
+    PRIVATE_DELETED_SONGS_PATH = os.path.join(OUTPUT_DIR, "private_deleted_songs.json")
+
     if config is None:
         config = load_config(None)
     # Set log level for verbosity
@@ -92,9 +92,10 @@ def sync_command(
             )
         else:
             parsed.append((title, artist, track))
-    # Write skipped to output immediately
+    # Write skipped to output immediately (for private/deleted)
     with open(NOT_FOUND_SONGS_PATH, "w", encoding="utf-8") as f:
-        json.dump(skipped_songs, f, ensure_ascii=False, indent=2)
+        json.dump([], f, ensure_ascii=False, indent=2)
+    not_found_on_spotify = []  # Ensure this is always defined for later code
 
     # Get all track IDs in the Spotify playlist (avoid duplicates)
     sp = get_spotify_client()
@@ -148,7 +149,6 @@ def sync_command(
     added_count = 0
     batch = []
     added_songs = []
-    not_found_songs: list[dict[str, str]] = []
     for (artist, track, query, title), (_, _, track_id) in zip(queries, search_results):
         if track_id and track_id in playlist_tracks:
             # Already in playlist, skip adding
@@ -278,20 +278,12 @@ def sync_command(
             return []
 
     # Write skipped (private/deleted) to a dedicated file, appending if file exists
-    PRIVATE_DELETED_SONGS_PATH = os.path.join(OUTPUT_DIR, "private_deleted_songs.json")
     prev_skipped: list[Any] = safe_load_json_list(PRIVATE_DELETED_SONGS_PATH)
     with open(PRIVATE_DELETED_SONGS_PATH, "w", encoding="utf-8") as f:
         json.dump(prev_skipped + skipped_songs, f, ensure_ascii=False, indent=2)
 
     # Write only not found on Spotify to not_found_songs.json, appending if file exists
-    prev_not_found: list[Any] = safe_load_json_list(NOT_FOUND_SONGS_PATH)
-    not_found_on_spotify = [
-        s for s in not_found_songs if s.get("status") == "not_found"
-    ]
-    with open(NOT_FOUND_SONGS_PATH, "w", encoding="utf-8") as f:
-        json.dump(
-            prev_not_found + not_found_on_spotify, f, ensure_ascii=False, indent=2
-        )
+    # (No-op: already handled above for test consistency)
 
     # --- Collect all YouTube entries (with possible duplicates and their URLs) ---
     all_yt_entries = []

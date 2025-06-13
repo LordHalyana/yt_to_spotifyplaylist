@@ -1,0 +1,43 @@
+site_name: yt2spotify
+site_description: Documentation for the yt2spotify project
+site_author: Your Name
+repo_url: https://github.com/LordHalyana/yt_to_spotifyplaylist
+repo_name: yt2spotify
+
+nav:
+  - Introduction: index.md
+  - Usage: usage.md
+  - API Reference:
+      - yt2spotify: api/yt2spotify.md
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - content.code.copy
+    - content.code.annotate
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.details
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_root_heading: true
+            show_source: true
+            docstring_style: google
+            merge_init_into_class: true
+            show_signature_annotations: true
+            separate_signature: true
+            show_if_no_docstring: true
+            show_typehints_in_signature: true

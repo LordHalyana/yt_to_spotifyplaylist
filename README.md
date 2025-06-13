@@ -1,3 +1,6 @@
+[![CI](https://github.com/LordHalyana/yt_to_spotifyplaylist/actions/workflows/ci.yml/badge.svg)](https://github.com/LordHalyana/yt_to_spotifyplaylist/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/LordHalyana/yt_to_spotifyplaylist/branch/main/graph/badge.svg)](https://codecov.io/gh/LordHalyana/yt_to_spotifyplaylist)
+
 # yt2spotify
 
 [![Build Status](https://github.com/LordHalyana/yt_to_spotifyplaylist/actions/workflows/ci.yml/badge.svg)](https://github.com/LordHalyana/yt_to_spotifyplaylist/actions/workflows/ci.yml)
