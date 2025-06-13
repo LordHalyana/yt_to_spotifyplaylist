@@ -26,6 +26,14 @@ jobs:
       - name: Type check with mypy (strict)
         run: |
           mypy --strict yt2spotify
+      - name: Ensure dryrun output files exist
+        run: |
+          mkdir -p output/dryrun_temp
+          for f in dryrun_added.json all_youtube_entries.json all_results.json not_found_songs.json private_deleted_songs.json; do
+            if [ ! -f "output/dryrun_temp/$f" ]; then
+              echo "[]" > "output/dryrun_temp/$f"
+            fi
+          done
       - name: Run tests (quiet)
         run: |
           pytest -q
