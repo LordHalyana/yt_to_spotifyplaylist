@@ -1,6 +1,6 @@
 import json
 import os
-import yt2spotify  # Ensures coverage is collected for the main package
+import yt2spotify  # noqa: F401  # Ensures coverage is collected for the main package
 
 def load_json(path):
     with open(path, encoding='utf-8') as f:
