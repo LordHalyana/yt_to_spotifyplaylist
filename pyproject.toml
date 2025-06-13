@@ -17,7 +17,8 @@ dependencies = [
     "aiohttp",
     "pytest",
     "pytest-cov",
-    "rapidfuzz"
+    "rapidfuzz",
+    "google-api-python-client"
 ]
 requires-python = ">=3.8"
 license = "MIT"
@@ -43,5 +44,6 @@ dev = [
     "tqdm",
     "yt-dlp",
     "spotipy",
-    "rapidfuzz"
+    "rapidfuzz",
+    "google-api-python-client"
 ]
