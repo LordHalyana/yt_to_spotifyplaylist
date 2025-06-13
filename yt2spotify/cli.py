@@ -1,16 +1,15 @@
 # mypy: disable-error-code=assignment
-import asyncio
 import logging
 from typing import Any, Optional
-from yt2spotify.core import get_spotify_client, async_search_with_cache
+from yt2spotify.core import get_spotify_client
 from yt2spotify.yt_utils import get_yt_playlist_titles_yt_dlp
 from yt2spotify.youtube import get_yt_playlist_titles_api as yt_api_fetch
 from yt2spotify.utils import clean_title, parse_artist_track
-from yt2spotify.cache import TrackCache
 import toml
 import os
 import json
 from yt2spotify.logging_config import logger
+
 
 def load_config(config_path: Optional[str] = None) -> dict[str, Any]:
     """
@@ -23,11 +22,14 @@ def load_config(config_path: Optional[str] = None) -> dict[str, Any]:
         path = config_path
     else:
         # Try both yt2spotify/default_config.toml and default_config.toml for editable installs
-        pkg_path = os.path.join(os.path.dirname(__file__), "yt2spotify", "default_config.toml")
+        pkg_path = os.path.join(
+            os.path.dirname(__file__), "yt2spotify", "default_config.toml"
+        )
         local_path = os.path.join(os.path.dirname(__file__), "default_config.toml")
         path = pkg_path if os.path.exists(pkg_path) else local_path
     config: dict[str, Any] = toml.load(path)
     return config
+
 
 # Set up output and log directories
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "output")
@@ -40,6 +42,7 @@ NOT_FOUND_SONGS_PATH = os.path.join(OUTPUT_DIR, "not_found_songs.json")
 LOG_PATH = os.path.join(LOG_DIR, "run_log.csv")
 MISSING_ON_SPOTIFY_PATH = os.path.join(OUTPUT_DIR, "missing_on_spotify.json")
 
+
 def sync_command(
     yt_url: str,
     playlist_id: str,
@@ -48,7 +51,7 @@ def sync_command(
     verbose: bool = False,
     yt_api: Optional[str] = None,
     progress_wrapper: Optional[Any] = None,
-    config: Optional[dict[str, Any]] = None
+    config: Optional[dict[str, Any]] = None,
 ) -> None:
     """
     Main sync logic. Accepts config dict for stop-words, thresholds, and backoff.
@@ -73,8 +76,20 @@ def sync_command(
     skipped_songs = []
     for title in titles:
         artist, track = parse_artist_track(title)
-        if not (artist or track) or not title or title.strip().lower().startswith('[private') or title.strip().lower().startswith('[deleted'):
-            skipped_songs.append({"title": title, "artist": artist, "track": track, "status": "private_or_deleted"})
+        if (
+            not (artist or track)
+            or not title
+            or title.strip().lower().startswith("[private")
+            or title.strip().lower().startswith("[deleted")
+        ):
+            skipped_songs.append(
+                {
+                    "title": title,
+                    "artist": artist,
+                    "track": track,
+                    "status": "private_or_deleted",
+                }
+            )
         else:
             parsed.append((title, artist, track))
     # Write skipped to output immediately
@@ -96,13 +111,28 @@ def sync_command(
     queries = []
     for title, artist, track in parsed:
         query = f"artist:{artist} track:{track}" if artist else clean_title(title)
-        queries.append((artist or '', track or '', query.strip(), title))
+        queries.append((artist or "", track or "", query.strip(), title))
 
-    # Async search with cache (only for tracks not already in playlist)
+    # Sync search with cache (only for tracks not already in playlist)
+    from yt2spotify.cache import TrackCache
+
     cache = TrackCache()
-    search_queries = [(a, t, q) for a, t, q, _ in queries]
-    loop = asyncio.get_event_loop()
-    search_results = loop.run_until_complete(async_search_with_cache(sp, search_queries, cache))
+    search_results = []
+    for artist, track, query, title in queries:
+        # Check cache first
+        cached_id = cache.get(artist, track)
+        if cached_id:
+            search_results.append((artist, track, cached_id))
+            continue
+        # Perform Spotify search (synchronous, single track)
+        result = sp.search(q=query, type="track", limit=1) or {}
+        items = result.get("tracks", {}).get("items", [])
+        if items:
+            track_id = items[0]["id"]
+            cache.set(artist, track, track_id)
+            search_results.append((artist, track, track_id))
+        else:
+            search_results.append((artist, track, None))
 
     # Get batch size and delay from config or use defaults
     batch_size = int(config.get("batch_size", 25))
@@ -110,7 +140,9 @@ def sync_command(
     batch_delay = float(config.get("batch_delay", 10.0))
     max_retries = int(config.get("max_retries", 5))
     backoff_factor = float(config.get("backoff_factor", 2.0))
-    min_retry_after = 10.0  # Always wait at least 10 seconds after a 429 if Retry-After is missing
+    min_retry_after = (
+        10.0  # Always wait at least 10 seconds after a 429 if Retry-After is missing
+    )
 
     # Build a set of track IDs already in the playlist for deduplication
     added_count = 0
@@ -120,11 +152,27 @@ def sync_command(
     for (artist, track, query, title), (_, _, track_id) in zip(queries, search_results):
         if track_id and track_id in playlist_tracks:
             # Already in playlist, skip adding
-            added_songs.append({"title": title, "artist": artist, "track": track, "track_id": track_id, "status": "already_in_playlist"})
+            added_songs.append(
+                {
+                    "title": title,
+                    "artist": artist,
+                    "track": track,
+                    "track_id": track_id,
+                    "status": "already_in_playlist",
+                }
+            )
             continue
         if track_id and not dry_run:
             batch.append(track_id)
-            added_songs.append({"title": title, "artist": artist, "track": track, "track_id": track_id, "status": "added"})
+            added_songs.append(
+                {
+                    "title": title,
+                    "artist": artist,
+                    "track": track,
+                    "track_id": track_id,
+                    "status": "added",
+                }
+            )
             if len(batch) == batch_size:
                 # Robust Spotify add with rate limit handling
                 retries = 0
@@ -134,28 +182,45 @@ def sync_command(
                         break
                     except Exception as e:
                         retry_after = None
-                        if hasattr(e, 'headers') and hasattr(getattr(e, 'headers'), 'get'):
-                            retry_after = getattr(e, 'headers').get('Retry-After')
-                        if hasattr(e, 'http_status') and getattr(e, 'http_status') == 429:
+                        if hasattr(e, "headers") and hasattr(
+                            getattr(e, "headers"), "get"
+                        ):
+                            retry_after = getattr(e, "headers").get("Retry-After")
+                        if (
+                            hasattr(e, "http_status")
+                            and getattr(e, "http_status") == 429
+                        ):
                             if retry_after is not None:
                                 try:
                                     wait = max(float(retry_after), min_retry_after)
                                 except Exception:
-                                    wait = max(batch_delay * (backoff_factor ** retries), min_retry_after)
+                                    wait = max(
+                                        batch_delay * (backoff_factor**retries),
+                                        min_retry_after,
+                                    )
                             else:
-                                wait = max(batch_delay * (backoff_factor ** retries), min_retry_after)
-                            logger.warning(f"Spotify rate limit hit. Retrying after {wait:.1f}s (retry {retries+1}/{max_retries})...")
+                                wait = max(
+                                    batch_delay * (backoff_factor**retries),
+                                    min_retry_after,
+                                )
+                            logger.warning(
+                                f"Spotify rate limit hit. Retrying after {wait:.1f}s (retry {retries+1}/{max_retries})..."
+                            )
                             import time
+
                             time.sleep(wait)
                             retries += 1
                             if retries >= max_retries:
-                                logger.error("Max retries reached for Spotify rate limit. Skipping batch.")
+                                logger.error(
+                                    "Max retries reached for Spotify rate limit. Skipping batch."
+                                )
                                 break
                         else:
                             logger.error(f"Spotify API error: {e}")
                             break
                 batch.clear()
                 import time
+
                 time.sleep(batch_delay)
             added_count += 1
     # Final batch add if there are remaining tracks
@@ -167,50 +232,66 @@ def sync_command(
                 break
             except Exception as e:
                 retry_after = None
-                if hasattr(e, 'headers') and hasattr(getattr(e, 'headers'), 'get'):
-                    retry_after = getattr(e, 'headers').get('Retry-After')
-                if hasattr(e, 'http_status') and getattr(e, 'http_status') == 429:
+                if hasattr(e, "headers") and hasattr(getattr(e, "headers"), "get"):
+                    retry_after = getattr(e, "headers").get("Retry-After")
+                if hasattr(e, "http_status") and getattr(e, "http_status") == 429:
                     if retry_after is not None:
                         try:
                             wait = max(float(retry_after), min_retry_after)
                         except Exception:
-                            wait = max(batch_delay * (backoff_factor ** retries), min_retry_after)
+                            wait = max(
+                                batch_delay * (backoff_factor**retries), min_retry_after
+                            )
                     else:
-                        wait = max(batch_delay * (backoff_factor ** retries), min_retry_after)
+                        wait = max(
+                            batch_delay * (backoff_factor**retries), min_retry_after
+                        )
                 else:
-                    wait = max(batch_delay * (backoff_factor ** retries), min_retry_after)
-                logger.warning(f"Spotify rate limit hit. Retrying after {wait:.1f}s (retry {retries+1}/{max_retries})...")
+                    wait = max(batch_delay * (backoff_factor**retries), min_retry_after)
+                logger.warning(
+                    f"Spotify rate limit hit. Retrying after {wait:.1f}s (retry {retries+1}/{max_retries})..."
+                )
                 import time
+
                 time.sleep(wait)
                 retries += 1
                 if retries >= max_retries:
-                    logger.error("Max retries reached for Spotify rate limit. Skipping batch.")
+                    logger.error(
+                        "Max retries reached for Spotify rate limit. Skipping batch."
+                    )
                     break
             else:
                 batch.clear()
                 import time
+
                 time.sleep(batch_delay)
                 break
 
+    # Helper to safely load a JSON list from file
+    def safe_load_json_list(path):
+        if not os.path.exists(path):
+            return []
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+
     # Write skipped (private/deleted) to a dedicated file, appending if file exists
     PRIVATE_DELETED_SONGS_PATH = os.path.join(OUTPUT_DIR, "private_deleted_songs.json")
-    if os.path.exists(PRIVATE_DELETED_SONGS_PATH):
-        with open(PRIVATE_DELETED_SONGS_PATH, "r", encoding="utf-8") as f:
-            prev_skipped = json.load(f)
-    else:
-        prev_skipped = []
+    prev_skipped = safe_load_json_list(PRIVATE_DELETED_SONGS_PATH)
     with open(PRIVATE_DELETED_SONGS_PATH, "w", encoding="utf-8") as f:
         json.dump(prev_skipped + skipped_songs, f, ensure_ascii=False, indent=2)
 
     # Write only not found on Spotify to not_found_songs.json, appending if file exists
-    if os.path.exists(NOT_FOUND_SONGS_PATH):
-        with open(NOT_FOUND_SONGS_PATH, "r", encoding="utf-8") as f:
-            prev_not_found = json.load(f)
-    else:
-        prev_not_found = []
-    not_found_on_spotify = [s for s in not_found_songs if s.get("status") == "not_found"]
+    prev_not_found = safe_load_json_list(NOT_FOUND_SONGS_PATH)
+    not_found_on_spotify = [
+        s for s in not_found_songs if s.get("status") == "not_found"
+    ]
     with open(NOT_FOUND_SONGS_PATH, "w", encoding="utf-8") as f:
-        json.dump(prev_not_found + not_found_on_spotify, f, ensure_ascii=False, indent=2)
+        json.dump(
+            prev_not_found + not_found_on_spotify, f, ensure_ascii=False, indent=2
+        )
 
     # --- Collect all YouTube entries (with possible duplicates and their URLs) ---
     all_yt_entries = []
@@ -219,17 +300,19 @@ def sync_command(
         yt_url = ""
         # If title is a dict with 'url', use that; else, leave as empty string
         if isinstance(title, dict):
-            yt_url = title.get('url', "")
-            yt_title = title.get('title', '')
+            yt_url = title.get("url", "")
+            yt_title = title.get("title", "")
         else:
             yt_title = title
-        all_yt_entries.append({
-            'title': yt_title,
-            'artist': artist,
-            'track': track,
-            'status': 'from_youtube',
-            'youtube_url': yt_url
-        })
+        all_yt_entries.append(
+            {
+                "title": yt_title,
+                "artist": artist,
+                "track": track,
+                "status": "from_youtube",
+                "youtube_url": yt_url,
+            }
+        )
     ALL_YT_ENTRIES_PATH = os.path.join(OUTPUT_DIR, "all_youtube_entries.json")
     with open(ALL_YT_ENTRIES_PATH, "w", encoding="utf-8") as f:
         json.dump(all_yt_entries, f, ensure_ascii=False, indent=2)
@@ -237,24 +320,20 @@ def sync_command(
     # --- Deduplicate before adding to Spotify and added_songs.json (applies to both dry-run and normal) ---
     unique_songs = {}
     for song in added_songs:
-        key = (song.get('artist'), song.get('track'), song.get('title'))
+        key = (song.get("artist"), song.get("track"), song.get("title"))
         # Only keep the first occurrence
         if key not in unique_songs and all(k is not None for k in key):
             unique_songs[key] = song
     deduped_added_songs = list(unique_songs.values())
     # Write added songs as before, appending if file exists
-    if os.path.exists(ADDED_SONGS_PATH):
-        with open(ADDED_SONGS_PATH, "r", encoding="utf-8") as f:
-            prev_added = json.load(f)
-    else:
-        prev_added = []
+    prev_added = safe_load_json_list(ADDED_SONGS_PATH)
     with open(ADDED_SONGS_PATH, "w", encoding="utf-8") as f:
         json.dump(prev_added + deduped_added_songs, f, ensure_ascii=False, indent=2)
     # For dry-run, also write deduped_added_songs to dryrun_temp/dryrun_added.json if needed
-    dryrun_temp_dir = os.path.join(OUTPUT_DIR, 'dryrun_temp')
+    dryrun_temp_dir = os.path.join(OUTPUT_DIR, "dryrun_temp")
     if not os.path.exists(dryrun_temp_dir):
         os.makedirs(dryrun_temp_dir)
-    dryrun_added_path = os.path.join(dryrun_temp_dir, 'dryrun_added.json')
+    dryrun_added_path = os.path.join(dryrun_temp_dir, "dryrun_added.json")
     with open(dryrun_added_path, "w", encoding="utf-8") as f:
         json.dump(deduped_added_songs, f, ensure_ascii=False, indent=2)
 
@@ -262,26 +341,28 @@ def sync_command(
     # Collect all results from deduped_added_songs, not_found_on_spotify, and skipped_songs
     all_results = []
     for s in deduped_added_songs:
-        d = {k: safe_str(s.get(k)) for k in ['title', 'artist', 'track', 'status']}
+        d = {k: safe_str(s.get(k)) for k in ["title", "artist", "track", "status"]}
         all_results.append(d)
     for s in not_found_on_spotify:
-        d = {k: safe_str(s.get(k)) for k in ['title', 'artist', 'track', 'status']}
+        d = {k: safe_str(s.get(k)) for k in ["title", "artist", "track", "status"]}
         all_results.append(d)
     for s in skipped_songs:
-        d = {k: safe_str(s.get(k)) for k in ['title', 'artist', 'track', 'status']}
+        d = {k: safe_str(s.get(k)) for k in ["title", "artist", "track", "status"]}
         all_results.append(d)
     ALL_RESULTS_PATH = os.path.join(OUTPUT_DIR, "all_results.json")
     with open(ALL_RESULTS_PATH, "w", encoding="utf-8") as f:
         json.dump(all_results, f, ensure_ascii=False, indent=2)
     # For dry-run, also write to dryrun_temp/all_results.json
-    dryrun_all_results_path = os.path.join(dryrun_temp_dir, 'all_results.json')
+    dryrun_all_results_path = os.path.join(dryrun_temp_dir, "all_results.json")
     with open(dryrun_all_results_path, "w", encoding="utf-8") as f:
         json.dump(all_results, f, ensure_ascii=False, indent=2)
 
     # Log summary
     num_added = sum(1 for s in added_songs if s["status"] == "added")
     num_already = sum(1 for s in added_songs if s["status"] == "already_in_playlist")
-    num_deleted_private = sum(1 for s in skipped_songs if s["status"] == "private_or_deleted")
+    num_deleted_private = sum(
+        1 for s in skipped_songs if s["status"] == "private_or_deleted"
+    )
     num_missing = len(not_found_on_spotify)
     logger.info(
         f"Finished.\n"
@@ -291,29 +372,50 @@ def sync_command(
         f"{num_missing} tracks were missing on Spotify."
     )
 
+
 def safe_str(val: object) -> str:
-    return '' if val is None else str(val)
+    return "" if val is None else str(val)
+
 
 def main() -> None:
     """
     CLI entry point for yt2spotify. Parses arguments and runs sync_command.
     """
     import argparse
-    parser = argparse.ArgumentParser(description='Sync YouTube playlist to Spotify playlist')
-    subparsers = parser.add_subparsers(dest='command', required=True)
-    sync_parser = subparsers.add_parser('sync', help='Sync a YouTube playlist to a Spotify playlist')
-    sync_parser.add_argument('yt_url', help='YouTube playlist URL')
-    sync_parser.add_argument('playlist_id', help='Spotify playlist ID')
-    sync_parser.add_argument('--dry-run', action='store_true', help='Do not add tracks to playlist, just log what would be added')
-    sync_parser.add_argument('--no-progress', action='store_true', help='Disable progress bar')
-    sync_parser.add_argument('--verbose', action='store_true', help='Verbose output (sets log level to DEBUG)')
-    sync_parser.add_argument('--yt-api-key', help='YouTube Data API v3 key (optional, enables API fallback)')
-    sync_parser.add_argument('--config', help='Path to a TOML config file (overrides package default)')
+
+    parser = argparse.ArgumentParser(
+        description="Sync YouTube playlist to Spotify playlist"
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    sync_parser = subparsers.add_parser(
+        "sync", help="Sync a YouTube playlist to a Spotify playlist"
+    )
+    sync_parser.add_argument("yt_url", help="YouTube playlist URL")
+    sync_parser.add_argument("playlist_id", help="Spotify playlist ID")
+    sync_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Do not add tracks to playlist, just log what would be added",
+    )
+    sync_parser.add_argument(
+        "--no-progress", action="store_true", help="Disable progress bar"
+    )
+    sync_parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Verbose output (sets log level to DEBUG)",
+    )
+    sync_parser.add_argument(
+        "--yt-api-key", help="YouTube Data API v3 key (optional, enables API fallback)"
+    )
+    sync_parser.add_argument(
+        "--config", help="Path to a TOML config file (overrides package default)"
+    )
     args = parser.parse_args()
     config = load_config(args.config)
     if args.verbose:
         logger.setLevel(logging.DEBUG)
-    if args.command == 'sync':
+    if args.command == "sync":
         sync_command(
             yt_url=args.yt_url,
             playlist_id=args.playlist_id,
@@ -322,5 +424,5 @@ def main() -> None:
             verbose=args.verbose,
             yt_api=args.yt_api_key,
             progress_wrapper=None,
-            config=config
+            config=config,
         )

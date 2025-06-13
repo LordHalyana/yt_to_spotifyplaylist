@@ -20,9 +20,12 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(message)s",
     datefmt="[%X]",
-    handlers=[RichHandler(console=console, show_time=False, show_level=True, show_path=False)]
+    handlers=[
+        RichHandler(console=console, show_time=False, show_level=True, show_path=False)
+    ],
 )
 logger = logging.getLogger("yt2spotify")
+
 
 def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
     """
@@ -34,11 +37,14 @@ def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
         path = config_path
     else:
         # Try both yt2spotify/default_config.toml and default_config.toml for editable installs
-        pkg_path = os.path.join(os.path.dirname(__file__), "yt2spotify", "default_config.toml")
+        pkg_path = os.path.join(
+            os.path.dirname(__file__), "yt2spotify", "default_config.toml"
+        )
         local_path = os.path.join(os.path.dirname(__file__), "default_config.toml")
         path = pkg_path if os.path.exists(pkg_path) else local_path
     with open(path, "r", encoding="utf-8") as f:
         return toml.load(f)
+
 
 def sync_command(
     yt_url,
@@ -48,7 +54,7 @@ def sync_command(
     verbose=False,
     yt_api=None,
     progress_wrapper=None,
-    config=None
+    config=None,
 ):
     """
     Main sync logic. Accepts config dict for stop-words, thresholds, and backoff.
@@ -75,7 +81,7 @@ def sync_command(
         query = f"artist:{artist} track:{track}" if artist else clean_title(title)
         for word in stop_words:
             query = query.replace(word, "")
-        queries.append((artist or '', track or '', query.strip()))
+        queries.append((artist or "", track or "", query.strip()))
     # Async search with cache
     loop = asyncio.get_event_loop()
     # Pass thresholds and backoff to async_search_with_cache via config if needed
@@ -89,31 +95,58 @@ def sync_command(
         iterator = tqdm(iterator, total=len(titles), desc="Syncing", unit="track")
     for idx, (title, (artist, track, track_id)) in iterator:
         if verbose:
-            tqdm.write(f"[{idx}] {artist} - {track} => {track_id}") if not no_progress else logger.debug(f"[{idx}] {artist} - {track} => {track_id}")
+            (
+                tqdm.write(f"[{idx}] {artist} - {track} => {track_id}")
+                if not no_progress
+                else logger.debug(f"[{idx}] {artist} - {track} => {track_id}")
+            )
         if track_id and not dry_run:
             sp.playlist_add_items(playlist_id, [track_id])
             added_count += 1
         elif track_id:
             added_count += 1
         elif verbose:
-            tqdm.write(f"  Not found: {title}") if not no_progress else logger.debug(f"  Not found: {title}")
+            (
+                tqdm.write(f"  Not found: {title}")
+                if not no_progress
+                else logger.debug(f"  Not found: {title}")
+            )
     msg = f"Finished. {added_count} tracks added to Spotify playlist {playlist_id}."
     tqdm.write(msg) if not no_progress else logger.info(msg)
 
+
 def main():
-    parser = argparse.ArgumentParser(description='Sync YouTube playlist to Spotify playlist')
-    subparsers = parser.add_subparsers(dest='command', required=True)
-    sync_parser = subparsers.add_parser('sync', help='Sync a YouTube playlist to a Spotify playlist')
-    sync_parser.add_argument('yt_url', help='YouTube playlist URL')
-    sync_parser.add_argument('playlist_id', help='Spotify playlist ID')
-    sync_parser.add_argument('--dry-run', action='store_true', help='Do not add tracks to playlist, just log what would be added')
-    sync_parser.add_argument('--no-progress', action='store_true', help='Disable progress bar')
-    sync_parser.add_argument('--verbose', action='store_true', help='Verbose output (sets log level to DEBUG)')
-    sync_parser.add_argument('--yt-api-key', help='YouTube Data API v3 key (optional, enables API fallback)')
-    sync_parser.add_argument('--config', help='Path to a TOML config file (overrides package default)')
+    parser = argparse.ArgumentParser(
+        description="Sync YouTube playlist to Spotify playlist"
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    sync_parser = subparsers.add_parser(
+        "sync", help="Sync a YouTube playlist to a Spotify playlist"
+    )
+    sync_parser.add_argument("yt_url", help="YouTube playlist URL")
+    sync_parser.add_argument("playlist_id", help="Spotify playlist ID")
+    sync_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Do not add tracks to playlist, just log what would be added",
+    )
+    sync_parser.add_argument(
+        "--no-progress", action="store_true", help="Disable progress bar"
+    )
+    sync_parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Verbose output (sets log level to DEBUG)",
+    )
+    sync_parser.add_argument(
+        "--yt-api-key", help="YouTube Data API v3 key (optional, enables API fallback)"
+    )
+    sync_parser.add_argument(
+        "--config", help="Path to a TOML config file (overrides package default)"
+    )
     args = parser.parse_args()
     config = load_config(args.config)
-    if args.command == 'sync':
+    if args.command == "sync":
         sync_command(
             yt_url=args.yt_url,
             playlist_id=args.playlist_id,
@@ -122,8 +155,9 @@ def main():
             verbose=args.verbose,
             yt_api=args.yt_api_key,
             progress_wrapper=None,
-            config=config
+            config=config,
         )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

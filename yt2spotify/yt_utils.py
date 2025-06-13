@@ -1,6 +1,7 @@
 import yt_dlp
 from typing import List
 
+
 def get_yt_playlist_titles_yt_dlp(playlist_url: str) -> List[str]:
     """
     Extracts video titles from a YouTube playlist URL using yt-dlp.
@@ -10,15 +11,16 @@ def get_yt_playlist_titles_yt_dlp(playlist_url: str) -> List[str]:
         A list of video titles as strings.
     """
     ydl_opts = {
-        'quiet': True,
-        'extract_flat': True,
-        'skip_download': True,
-        'force_generic_extractor': False,
+        "quiet": True,
+        "extract_flat": True,
+        "skip_download": True,
+        "force_generic_extractor": False,
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(playlist_url, download=False)
-        entries = info.get('entries', []) if info else []
-        return [entry.get('title') for entry in entries if entry.get('title')]
+        entries = info.get("entries", []) if info else []
+        return [entry.get("title") for entry in entries if entry.get("title")]
+
 
 # Placeholder for YouTube Data API v3 support
 def get_yt_playlist_titles_api(playlist_url: str, api_key: str) -> List[str]:
@@ -32,4 +34,4 @@ def get_yt_playlist_titles_api(playlist_url: str, api_key: str) -> List[str]:
     Raises:
         NotImplementedError: Always, as this is a stub.
     """
-    raise NotImplementedError('YouTube Data API v3 support not yet implemented')
+    raise NotImplementedError("YouTube Data API v3 support not yet implemented")

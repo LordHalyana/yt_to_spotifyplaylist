@@ -1,12 +1,11 @@
 import spotipy
-import asyncio
-import aiohttp
 from typing import List, Tuple, Optional, Any
 from spotipy.oauth2 import SpotifyOAuth
 from yt2spotify.utils import get_spotify_credentials
 from yt2spotify.cache import TrackCache
 from urllib.parse import quote
 from yt2spotify.logging_config import logger
+
 
 # --- YouTube helpers ---
 def get_yt_playlist_titles(playlist_url: str) -> List[str]:
@@ -18,16 +17,18 @@ def get_yt_playlist_titles(playlist_url: str) -> List[str]:
         A list of video titles as strings.
     """
     import yt_dlp
+
     ydl_opts = {
-        'quiet': True,
-        'extract_flat': True,
-        'skip_download': True,
-        'force_generic_extractor': False,
+        "quiet": True,
+        "extract_flat": True,
+        "skip_download": True,
+        "force_generic_extractor": False,
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(playlist_url, download=False)
-        entries = info.get('entries', []) if info else []
-        return [entry.get('title') for entry in entries if entry.get('title')]
+        entries = info.get("entries", []) if info else []
+        return [entry.get("title") for entry in entries if entry.get("title")]
+
 
 # --- Spotify helpers ---
 def get_spotify_client() -> spotipy.Spotify:
@@ -35,80 +36,52 @@ def get_spotify_client() -> spotipy.Spotify:
     Returns an authenticated Spotipy client for Spotify API access.
     """
     client_id, client_secret, redirect_uri = get_spotify_credentials()
-    scope = 'playlist-modify-public playlist-modify-private'
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
-        client_id=client_id,
-        client_secret=client_secret,
-        redirect_uri=redirect_uri,
-        scope=scope
-    ))
+    scope = "playlist-modify-public playlist-modify-private"
+    sp = spotipy.Spotify(
+        auth_manager=SpotifyOAuth(
+            client_id=client_id,
+            client_secret=client_secret,
+            redirect_uri=redirect_uri,
+            scope=scope,
+        )
+    )
     return sp
 
-async def async_spotify_search_batch(
-    sp_token: str,
-    queries: List[Tuple[str, str, str]],
-    session: aiohttp.ClientSession
-) -> List[Tuple[str, str, Optional[str], Any]]:
-    """
-    Performs batch Spotify track searches asynchronously.
-    Args:
-        sp_token: Spotify API token.
-        queries: List of (artist, title, query_string) tuples.
-        session: aiohttp session for HTTP requests.
-    Returns:
-        List of (artist, title, track_id or None, response_json) tuples.
-    """
-    headers = {"Authorization": f"Bearer {sp_token}"}
-    results: List[Optional[Tuple[str, str, Optional[str], Any]]] = [None] * len(queries)
-    backoff = 1.0
-    max_backoff = 60.0
-    tasks = []
-    for i, (artist, title, query) in enumerate(queries):
-        if not query.strip():
-            # Log skipped queries
-            logger.info(f'Skipping: "{title}" - "{artist}" - in playlist - skipping (empty query)')
-            continue
-        url = f"https://api.spotify.com/v1/search?q={quote(query)}&type=track&limit=1"
-        tasks.append((i, artist, title, url))
-    async def fetch(idx: int, artist: str, title: str, url: str) -> Tuple[int, str, str, Optional[str], Any]:
-        nonlocal backoff
-        while True:
-            async with session.get(url, headers=headers) as resp:
-                if resp.status == 429:
-                    retry_after = float(resp.headers.get('Retry-After', backoff))
-                    logger.info(f"Rate limit hit. Retrying after {retry_after} seconds.")
-                    await asyncio.sleep(retry_after)
-                    backoff = min(backoff * 2, max_backoff)
-                    continue
-                if resp.status != 200:
-                    try:
-                        text = await resp.text()
-                    except Exception:
-                        text = "<no response body>"
-                    logger.warning(f"Spotify API error {resp.status} for {url}: {text}")
-                    await asyncio.sleep(2)  # Wait longer after error
-                    return (idx, artist, title, None, None)
-                content_type = resp.headers.get('Content-Type', '')
-                if 'application/json' not in content_type:
-                    text = await resp.text()
-                    logger.warning(f"Unexpected content type {content_type} for {url}: {text}")
-                    await asyncio.sleep(2)  # Wait longer after error
-                    return (idx, artist, title, None, None)
-                data = await resp.json()
-                items = data.get('tracks', {}).get('items', [])
-                track_id = items[0]['id'] if items else None
-                await asyncio.sleep(1.5)  # Increase delay to 1.5s to avoid rate limits
-                return (idx, artist, title, track_id, data)
-    coros = [fetch(idx, artist, title, url) for idx, artist, title, url in tasks]
-    for fut in asyncio.as_completed(coros):
-        idx, artist, title, track_id, data = await fut
-        results[idx] = (artist, title, track_id, data)
-    return results  # type: ignore
 
-async def async_search_with_cache(
-    sp: Any,
-    queries: List[Tuple[str, str, str]],
-    cache: TrackCache
+def sync_spotify_search(
+    sp: spotipy.Spotify, queries: List[Tuple[str, str, str]]
+) -> List[Tuple[str, str, Optional[str]]]:
+    """
+    Performs synchronous Spotify track searches.
+    Args:
+        sp: Authenticated Spotipy client.
+        queries: List of (artist, title, query_string) tuples.
+    Returns:
+        List of (artist, title, track_id or None) tuples.
+    """
+    results: List[Tuple[str, str, Optional[str]]] = []
+    for artist, title, query in queries:
+        if not query.strip():
+            logger.info(
+                f'Skipping: "{title}" - "{artist}" - in playlist - skipping (empty query)'
+            )
+            results.append((artist, title, None))
+            continue
+        logger.info(f"Searching for: {title} - {artist}")
+        try:
+            response = sp.search(q=quote(query), type="track", limit=1)
+            tracks = response.get("tracks") if response else None
+            items = tracks.get("items", []) if tracks else []
+            track_id = items[0]["id"] if items else None
+            results.append((artist, title, track_id))
+        except Exception as e:
+            logger.warning(f"Error searching for {title} - {artist}: {e}")
+            results.append((artist, title, None))
+    return results
+
+
+def sync_search_with_cache(
+    sp: Any, queries: List[Tuple[str, str, str]], cache: TrackCache
 ) -> List[Tuple[str, str, Optional[str]]]:
     """
     Performs Spotify search with local cache for (artist, title) to track_id.
@@ -121,10 +94,14 @@ async def async_search_with_cache(
     """
     uncached: List[Tuple[str, str, str]] = []
     uncached_idx: List[int] = []
-    results: List[Tuple[str, str, Optional[str]]] = [(artist, title, None) for artist, title, _ in queries]
+    results: List[Tuple[str, str, Optional[str]]] = [
+        (artist, title, None) for artist, title, _ in queries
+    ]
     for i, (artist, title, query) in enumerate(queries):
         if not query.strip():
-            logger.info(f'Skipping: "{title}" - "{artist}" - in playlist - skipping (empty query)')
+            logger.info(
+                f'Skipping: "{title}" - "{artist}" - in playlist - skipping (empty query)'
+            )
             continue
         cached_id = cache.get(artist, title)
         if cached_id:
@@ -133,9 +110,7 @@ async def async_search_with_cache(
             uncached.append((artist, title, query))
             uncached_idx.append(i)
     if uncached:
-        token = sp.auth_manager.get_access_token(as_dict=False)
-        async with aiohttp.ClientSession() as session:
-            batch_results = await async_spotify_search_batch(token, uncached, session)
-        for (artist, title, track_id, _), idx in zip(batch_results, uncached_idx):
+        batch_results = sync_spotify_search(sp, uncached)
+        for (artist, title, track_id), idx in zip(batch_results, uncached_idx):
             results[idx] = (artist, title, track_id)
     return results

@@ -35,9 +35,9 @@ cache.sqlite
 htmlcov/
 
 # runtime / test artefacts
-output/
 .cache/
-.pytest_cache/
+output/
+.coverage
 *.sqlite
 *.json
 

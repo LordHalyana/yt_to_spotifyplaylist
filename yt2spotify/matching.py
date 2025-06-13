@@ -6,23 +6,26 @@ JaroWinkler: Optional[Any]
 
 try:
     from rapidfuzz.fuzz import token_set_ratio as _token_set_ratio
+
     token_set_ratio = _token_set_ratio
 except ImportError:
     token_set_ratio = None
 
 try:
     from rapidfuzz.distance import JaroWinkler as _JaroWinkler
+
     JaroWinkler = _JaroWinkler
 except ImportError:
     JaroWinkler = None
 
 __all__ = ["is_reasonable_match"]
 
+
 def is_reasonable_match(
     searched_artist: Optional[str],
     searched_title: Optional[str],
     found_artist: Optional[str],
-    found_title: Optional[str]
+    found_title: Optional[str],
 ) -> bool:
     """
     Determines if a found track is a reasonable match for a searched artist/title.
@@ -36,10 +39,10 @@ def is_reasonable_match(
     Returns:
         True if the match is reasonable, False otherwise.
     """
-    searched_artist = (searched_artist or '').lower().strip()
-    searched_title = (searched_title or '').lower().strip()
-    found_artist = (found_artist or '').lower().strip()
-    found_title = (found_title or '').lower().strip()
+    searched_artist = (searched_artist or "").lower().strip()
+    searched_title = (searched_title or "").lower().strip()
+    found_artist = (found_artist or "").lower().strip()
+    found_title = (found_title or "").lower().strip()
     artist_match = all(word in found_artist for word in searched_artist.split() if word)
     if not artist_match:
         return False

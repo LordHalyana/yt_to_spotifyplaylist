@@ -4,7 +4,9 @@ def main() -> None:
     """
     # Import here to avoid circular import issues
     from .cli import main as cli_main
+
     cli_main()
+
 
 if __name__ == "__main__":
     main()

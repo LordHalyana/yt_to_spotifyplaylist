@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import unicodedata
 import re
 
+
 def get_spotify_credentials() -> Tuple[str, str, str]:
     """
     Loads Spotify credentials from environment or .env file.
@@ -14,21 +15,26 @@ def get_spotify_credentials() -> Tuple[str, str, str]:
         RuntimeError: If any credential is missing.
     """
     load_dotenv()
-    client_id = os.getenv('SPOTIPY_CLIENT_ID')
-    client_secret = os.getenv('SPOTIPY_CLIENT_SECRET')
-    redirect_uri = os.getenv('SPOTIPY_REDIRECT_URI')
+    client_id = os.getenv("SPOTIPY_CLIENT_ID")
+    client_secret = os.getenv("SPOTIPY_CLIENT_SECRET")
+    redirect_uri = os.getenv("SPOTIPY_REDIRECT_URI")
     missing = []
     if not client_id:
-        missing.append('SPOTIPY_CLIENT_ID')
+        missing.append("SPOTIPY_CLIENT_ID")
     if not client_secret:
-        missing.append('SPOTIPY_CLIENT_SECRET')
+        missing.append("SPOTIPY_CLIENT_SECRET")
     if not redirect_uri:
-        missing.append('SPOTIPY_REDIRECT_URI')
+        missing.append("SPOTIPY_REDIRECT_URI")
     if missing:
-        raise RuntimeError(f"Missing required Spotify credentials: {', '.join(missing)}. Set them in your environment or a .env file.")
+        raise RuntimeError(
+            f"Missing required Spotify credentials: {', '.join(missing)}. Set them in your environment or a .env file."
+        )
     # mypy: assert all are str
-    assert client_id is not None and client_secret is not None and redirect_uri is not None
+    assert (
+        client_id is not None and client_secret is not None and redirect_uri is not None
+    )
     return client_id, client_secret, redirect_uri
+
 
 def clean_title(title: str) -> str:
     """
@@ -38,13 +44,18 @@ def clean_title(title: str) -> str:
     Returns:
         A cleaned, normalized title string.
     """
-    title = unicodedata.normalize('NFKC', title).casefold()
-    title = re.sub(r'\[.*?\]', '', title)
-    title = re.sub(r'\(.*?\)', '', title)
-    title = re.sub(r'(?i)\b(prod\.|ft\.|feat\.|official|audio|video|unreleased|music|visualizer|by|with|remix|version|explicit|clean|lyrics|lyric|clip|HD|HQ|\d{4})\b', '', title)
-    title = re.sub(r'[-_]', ' ', title)
-    title = re.sub(r'\s+', ' ', title)
+    title = unicodedata.normalize("NFKC", title).casefold()
+    title = re.sub(r"\[.*?\]", "", title)
+    title = re.sub(r"\(.*?\)", "", title)
+    title = re.sub(
+        r"(?i)\b(prod\.|ft\.|feat\.|official|audio|video|unreleased|music|visualizer|by|with|remix|version|explicit|clean|lyrics|lyric|clip|HD|HQ|\d{4})\b",
+        "",
+        title,
+    )
+    title = re.sub(r"[-_]", " ", title)
+    title = re.sub(r"\s+", " ", title)
     return title.strip()
+
 
 def parse_artist_track(title: str) -> Tuple[Optional[str], str]:
     """
@@ -54,37 +65,43 @@ def parse_artist_track(title: str) -> Tuple[Optional[str], str]:
     Returns:
         Tuple of (artist, track). Artist may be None if not found.
     """
-    title = unicodedata.normalize('NFKC', title).casefold()
-    title = re.sub(r'\[(feat\.|ft\.|featuring)[^\]]*\]', '', title, flags=re.IGNORECASE)
-    title = re.sub(r'\((feat\.|ft\.|featuring)[^\)]*\)', '', title, flags=re.IGNORECASE)
-    title = re.sub(r'[\u2013\u2014\u2212\u2022\u00b7\u2027\u2010\u2011\u2012\u2015\|/]', ' - ', title)
-    title = re.sub(r'\s*-+\s*', ' - ', title)
-    title = re.sub(r'\s+', ' ', title)
-    trailing = r'(?i)\b(live|remaster(ed)?( \d{2,4})?|lyrics?|audio|video|version|explicit|clean|visualizer|clip|HD|HQ)\b.*$'
-    title = re.sub(trailing, '', title).strip()
-    if ' - ' in title:
-        artist, track = title.split(' - ', 1)
-        artist = re.split(r'(?i)\\b(feat\\.|ft\\.|featuring)\\b', artist)[0].strip()
-        track = re.split(r'(?i)\\b(feat\\.|ft\\.|featuring)\\b', track)[0].strip()
+    title = unicodedata.normalize("NFKC", title).casefold()
+    title = re.sub(r"\[(feat\.|ft\.|featuring)[^\]]*\]", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"\((feat\.|ft\.|featuring)[^\)]*\)", "", title, flags=re.IGNORECASE)
+    title = re.sub(
+        r"[\u2013\u2014\u2212\u2022\u00b7\u2027\u2010\u2011\u2012\u2015\|/]",
+        " - ",
+        title,
+    )
+    title = re.sub(r"\s*-+\s*", " - ", title)
+    title = re.sub(r"\s+", " ", title)
+    trailing = r"(?i)\b(live|remaster(ed)?( \d{2,4})?|lyrics?|audio|video|version|explicit|clean|visualizer|clip|HD|HQ)\b.*$"
+    title = re.sub(trailing, "", title).strip()
+    if " - " in title:
+        artist, track = title.split(" - ", 1)
+        artist = re.split(r"(?i)\\b(feat\\.|ft\\.|featuring)\\b", artist)[0].strip()
+        track = re.split(r"(?i)\\b(feat\\.|ft\\.|featuring)\\b", track)[0].strip()
         return artist, track
     return None, clean_title(title)
+
 
 def validate_json_entries(json_path: str, required_keys: Set[str]) -> None:
     """
     Validates that all entries in the given JSON file contain the required keys.
     Raises AssertionError if any entry is missing required keys.
     """
-    with open(json_path, encoding='utf-8') as f:
+    with open(json_path, encoding="utf-8") as f:
         data = json.load(f)
     for entry in data:
         assert required_keys.issubset(entry), f"Missing keys in {entry}"
+
 
 def validate_no_duplicates(json_path: str, key_fields: Set[str]) -> None:
     """
     Validates that there are no duplicate entries in the JSON file based on key_fields.
     Raises AssertionError if duplicates are found.
     """
-    with open(json_path, encoding='utf-8') as f:
+    with open(json_path, encoding="utf-8") as f:
         data = json.load(f)
     seen = set()
     for entry in data:

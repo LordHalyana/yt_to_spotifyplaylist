@@ -26,7 +26,6 @@ Sync YouTube playlists to Spotify playlists with robust matching, progress bar, 
 - Structured logging with Rich
 - TOML config file support (`--config`)
 - Universal progress bar and CLI flags (`--no-progress`, `--verbose`)
-- Async Spotify search pipeline with 1s delay between requests (respects API limits)
 - Handles YouTube private/deleted videos and skips empty queries
 - Output files: `output/added_songs.json`, `output/not_found_songs.json`, `output/missing_on_spotify.json` (with status fields)
 - Local cache for (artist, title) → track_id (planned)
