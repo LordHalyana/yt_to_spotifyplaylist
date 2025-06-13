@@ -2,7 +2,6 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import pytest
 from yt2spotify import utils
 
 def test_clean_title_removes_brackets_and_parentheses():

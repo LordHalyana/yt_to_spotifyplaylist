@@ -1,4 +1,3 @@
-import pytest
 from yt2spotify import matching
 
 def test_is_reasonable_match_exact():

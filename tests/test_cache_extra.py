@@ -1,4 +1,3 @@
-import pytest
 from yt2spotify import cache
 
 def test_track_cache_case_insensitive(tmp_path):

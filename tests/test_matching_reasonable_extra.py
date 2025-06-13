@@ -2,7 +2,6 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import pytest
 from yt2spotify import matching
 
 def test_is_reasonable_match_jw_and_token_set(monkeypatch):

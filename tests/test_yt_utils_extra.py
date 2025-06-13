@@ -1,4 +1,3 @@
-import pytest
 from yt2spotify import yt_utils
 
 def test_get_yt_playlist_titles_yt_dlp_empty(monkeypatch):

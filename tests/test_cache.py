@@ -2,7 +2,6 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import pytest
 from yt2spotify import cache
 
 def test_track_cache_set_and_get(tmp_path):

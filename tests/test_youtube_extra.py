@@ -1,4 +1,3 @@
-import pytest
 from yt2spotify import youtube
 
 def test_get_yt_playlist_titles_api_handles_no_api_key(monkeypatch):

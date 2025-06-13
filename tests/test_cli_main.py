@@ -1,5 +1,4 @@
 import sys
-import os
 import pytest
 from unittest import mock
 from yt2spotify import cli

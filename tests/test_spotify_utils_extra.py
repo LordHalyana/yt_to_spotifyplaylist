@@ -1,4 +1,3 @@
-import pytest
 from yt2spotify import spotify_utils
 
 def test_spotify_search_empty_result():

@@ -1,6 +1,4 @@
 import pytest
-import asyncio
-from unittest import mock
 from yt2spotify import core
 
 @pytest.mark.asyncio

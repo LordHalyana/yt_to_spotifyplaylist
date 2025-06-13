@@ -1,6 +1,5 @@
 import pytest
 from yt2spotify import utils
-import os
 
 def test_clean_title_basic():
     assert utils.clean_title("Daft Punk - One More Time (Official Video)") == "daft punk one more time"

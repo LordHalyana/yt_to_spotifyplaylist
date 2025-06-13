@@ -1,4 +1,3 @@
-import pytest
 import asyncio
 from yt2spotify import core
 from yt2spotify.core import async_search_with_cache
@@ -48,7 +47,6 @@ def test_get_spotify_client(monkeypatch):
 
 def test_dummy_for_coverage():
     # Minimal call to cover a line in core.py (e.g., import or a simple function)
-    import yt2spotify.core
     assert True
 
 def test_async_search_with_cache_empty_query(capsys):
