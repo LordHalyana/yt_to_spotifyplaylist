@@ -1,0 +1,7 @@
+spotipy
+yt-dlp
+python-dotenv
+tqdm
+aiohttp
+pytest
+rapidfuzz

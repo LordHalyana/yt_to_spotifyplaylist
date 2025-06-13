@@ -1,0 +1,42 @@
+# Byte-compiled / cache / venv
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+ENV/
+
+# VSCode
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Environment and secrets
+.env
+.env.*
+
+# Logs and runtime
+*.log
+run_log.csv
+
+# Data
+added_songs.json
+not_found_songs.json
+dryrun_added.json
+cache.sqlite
+
+# Test outputs
+.coverage
+htmlcov/
+
+# Misc
+*.bak
+*.swp
