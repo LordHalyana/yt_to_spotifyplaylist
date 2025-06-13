@@ -1,6 +1,6 @@
 # yt2spotify
 
-[![Build Status](https://github.com/YOUR_GITHUB_USERNAME/yt_to_spotifyplaylist/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_GITHUB_USERNAME/yt_to_spotifyplaylist/actions/workflows/ci.yml)
+[![Build Status](https://github.com/LordHalyana/yt_to_spotifyplaylist/actions/workflows/ci.yml/badge.svg)](https://github.com/LordHalyana/yt_to_spotifyplaylist/actions/workflows/ci.yml)
 [![PyPI version](https://badge.fury.io/py/yt2spotify.svg)](https://badge.fury.io/py/yt2spotify)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
