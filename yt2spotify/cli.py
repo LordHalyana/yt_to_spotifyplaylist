@@ -117,7 +117,7 @@ def sync_command(
     from yt2spotify.cache import TrackCache
 
     cache = TrackCache()
-    search_results = []
+    search_results: list[tuple[str, str, Optional[str]]] = []
     for artist, track, query, title in queries:
         # Check cache first
         cached_id = cache.get(artist, track)
@@ -268,23 +268,23 @@ def sync_command(
                 break
 
     # Helper to safely load a JSON list from file
-    def safe_load_json_list(path):
+    def safe_load_json_list(path: str) -> list[Any]:
         if not os.path.exists(path):
             return []
         try:
             with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                return list(json.load(f))
         except Exception:
             return []
 
     # Write skipped (private/deleted) to a dedicated file, appending if file exists
     PRIVATE_DELETED_SONGS_PATH = os.path.join(OUTPUT_DIR, "private_deleted_songs.json")
-    prev_skipped = safe_load_json_list(PRIVATE_DELETED_SONGS_PATH)
+    prev_skipped: list[Any] = safe_load_json_list(PRIVATE_DELETED_SONGS_PATH)
     with open(PRIVATE_DELETED_SONGS_PATH, "w", encoding="utf-8") as f:
         json.dump(prev_skipped + skipped_songs, f, ensure_ascii=False, indent=2)
 
     # Write only not found on Spotify to not_found_songs.json, appending if file exists
-    prev_not_found = safe_load_json_list(NOT_FOUND_SONGS_PATH)
+    prev_not_found: list[Any] = safe_load_json_list(NOT_FOUND_SONGS_PATH)
     not_found_on_spotify = [
         s for s in not_found_songs if s.get("status") == "not_found"
     ]
@@ -326,7 +326,7 @@ def sync_command(
             unique_songs[key] = song
     deduped_added_songs = list(unique_songs.values())
     # Write added songs as before, appending if file exists
-    prev_added = safe_load_json_list(ADDED_SONGS_PATH)
+    prev_added: list[Any] = safe_load_json_list(ADDED_SONGS_PATH)
     with open(ADDED_SONGS_PATH, "w", encoding="utf-8") as f:
         json.dump(prev_added + deduped_added_songs, f, ensure_ascii=False, indent=2)
     # For dry-run, also write deduped_added_songs to dryrun_temp/dryrun_added.json if needed
