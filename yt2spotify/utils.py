@@ -1,5 +1,6 @@
+import json
 import os
-from typing import Tuple, Optional
+from typing import Set, Tuple, Optional, Dict, Any
 from dotenv import load_dotenv
 import unicodedata
 import re
@@ -67,3 +68,26 @@ def parse_artist_track(title: str) -> Tuple[Optional[str], str]:
         track = re.split(r'(?i)\\b(feat\\.|ft\\.|featuring)\\b', track)[0].strip()
         return artist, track
     return None, clean_title(title)
+
+def validate_json_entries(json_path: str, required_keys: Set[str]) -> None:
+    """
+    Validates that all entries in the given JSON file contain the required keys.
+    Raises AssertionError if any entry is missing required keys.
+    """
+    with open(json_path, encoding='utf-8') as f:
+        data = json.load(f)
+    for entry in data:
+        assert required_keys.issubset(entry), f"Missing keys in {entry}"
+
+def validate_no_duplicates(json_path: str, key_fields: Set[str]) -> None:
+    """
+    Validates that there are no duplicate entries in the JSON file based on key_fields.
+    Raises AssertionError if duplicates are found.
+    """
+    with open(json_path, encoding='utf-8') as f:
+        data = json.load(f)
+    seen = set()
+    for entry in data:
+        pair = tuple(entry.get(k) for k in key_fields)
+        assert pair not in seen, f"Duplicate in added: {pair}"
+        seen.add(pair)

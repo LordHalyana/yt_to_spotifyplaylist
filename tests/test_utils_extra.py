@@ -38,3 +38,17 @@ def test_parse_artist_track_no_artist():
     artist, track = utils.parse_artist_track('Just a Song')
     assert artist is None
     assert track == 'just a song'
+
+def test_validate_json_outputs():
+    base = os.path.join('output', 'dryrun_temp')
+    # Validate dryrun_added.json
+    utils.validate_json_entries(os.path.join(base, 'dryrun_added.json'), {'title', 'artist', 'track', 'status'})
+    utils.validate_no_duplicates(os.path.join(base, 'dryrun_added.json'), {'artist', 'track', 'title'})
+    # Validate all_youtube_entries.json
+    utils.validate_json_entries(os.path.join(base, 'all_youtube_entries.json'), {'title', 'artist', 'track', 'status', 'youtube_url'})
+    # Validate all_results.json
+    utils.validate_json_entries(os.path.join(base, 'all_results.json'), {'title', 'artist', 'track', 'status'})
+    # Validate not_found_songs.json
+    utils.validate_json_entries(os.path.join(base, 'not_found_songs.json'), {'title', 'artist', 'track', 'status'})
+    # Validate private_deleted_songs.json
+    utils.validate_json_entries(os.path.join(base, 'private_deleted_songs.json'), {'title', 'artist', 'track', 'status'})
