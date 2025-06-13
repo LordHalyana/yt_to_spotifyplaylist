@@ -95,7 +95,9 @@ def sync_command(
     # Write skipped to output immediately (for private/deleted)
     with open(NOT_FOUND_SONGS_PATH, "w", encoding="utf-8") as f:
         json.dump([], f, ensure_ascii=False, indent=2)
-    not_found_on_spotify = []  # Ensure this is always defined for later code
+    not_found_on_spotify: list[dict[str, str]] = (
+        []
+    )  # Ensure this is always defined for later code
 
     # Get all track IDs in the Spotify playlist (avoid duplicates)
     sp = get_spotify_client()
