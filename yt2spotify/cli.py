@@ -23,12 +23,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger("yt2spotify")
 
-def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
+def load_config(config_path: Optional[str] = None) -> dict[str, Any]:
     """
     Load configuration from a TOML file. If not provided, load the package default.
     Returns:
         Dictionary of config values.
     """
+    path: str
     if config_path:
         path = config_path
     else:
@@ -36,8 +37,8 @@ def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
         pkg_path = os.path.join(os.path.dirname(__file__), "yt2spotify", "default_config.toml")
         local_path = os.path.join(os.path.dirname(__file__), "default_config.toml")
         path = pkg_path if os.path.exists(pkg_path) else local_path
-    with open(path, "r", encoding="utf-8") as f:
-        return toml.load(f)
+    config: dict[str, Any] = toml.load(path)
+    return config
 
 # Set up output and log directories
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "output")
