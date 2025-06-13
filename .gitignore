@@ -28,8 +28,7 @@ build/
 run_log.csv
 
 # Data
-added_songs.json
-not_found_songs.json
+
 dryrun_added.json
 cache.sqlite
 
