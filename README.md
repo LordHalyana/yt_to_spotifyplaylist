@@ -47,7 +47,7 @@ Sync YouTube playlists to Spotify playlists with robust matching, progress bar, 
 
 ## 🚀 Quickstart
 
-1. `pip install -r requirements-dev.txt`
+1. `pip install .[dev]`
 2. `pre-commit install`
 3. Add your `.env` with Spotify credentials
 4. Run: `python -m yt2spotify ...` or use the CLI
@@ -83,7 +83,7 @@ pip install git+https://github.com/LordHalyana/yt_to_spotifyplaylist
 Or, for local development:
 
 ```bash
-pip install .
+pip install .[dev]
 ```
 
 After install, run:
@@ -185,7 +185,7 @@ pytest
 - `logs/` — Log files
 - `tests/` — Test suite (regression and unit tests)
 - `.env` — Your credentials (never commit this!)
-- `requirements.txt` — Python dependencies
+- `pyproject.toml` — Project configuration and dependencies
 - `example_env.txt` — Example environment file
 
 ## License
