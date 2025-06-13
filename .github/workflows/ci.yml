@@ -33,6 +33,9 @@ jobs:
       - name: Type check with mypy
         run: |
           mypy yt2spotify
+      - name: Generate dryrun output files
+        run: |
+          python -m yt2spotify.cli sync "https://www.youtube.com/playlist?list=PLE4B85EC96395A67D" "53nCceptoTItuwCWUIAlXr" --dry-run --no-progress
       - name: Run tests
         run: |
           pytest
