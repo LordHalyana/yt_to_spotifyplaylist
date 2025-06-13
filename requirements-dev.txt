@@ -5,3 +5,4 @@ pytest
 rich
 toml
 google-api-python-client
+types-toml
