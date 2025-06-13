@@ -1,119 +1,5 @@
 [
   {
-    "title": "[Deleted video]",
-    "artist": null,
-    "track": "[deleted",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Deleted video]",
-    "artist": null,
-    "track": "[deleted",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Deleted video]",
-    "artist": null,
-    "track": "[deleted",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Deleted video]",
-    "artist": null,
-    "track": "[deleted",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Deleted video]",
-    "artist": null,
-    "track": "[deleted",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Deleted video]",
-    "artist": null,
-    "track": "[deleted",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Deleted video]",
-    "artist": null,
-    "track": "[deleted",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Deleted video]",
-    "artist": null,
-    "track": "[deleted",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Private video]",
-    "artist": null,
-    "track": "[private",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Private video]",
-    "artist": null,
-    "track": "[private",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Private video]",
-    "artist": null,
-    "track": "[private",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Private video]",
-    "artist": null,
-    "track": "[private",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Private video]",
-    "artist": null,
-    "track": "[private",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Private video]",
-    "artist": null,
-    "track": "[private",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Private video]",
-    "artist": null,
-    "track": "[private",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Private video]",
-    "artist": null,
-    "track": "[private",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Deleted video]",
-    "artist": null,
-    "track": "[deleted",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Private video]",
-    "artist": null,
-    "track": "[private",
-    "status": "private_or_deleted"
-  },
-  {
-    "title": "[Private video]",
-    "artist": null,
-    "track": "[private",
-    "status": "private_or_deleted"
-  },
-  {
     "title": "Lil Durk - Late Checkout feat. Hunxho (Official Audio)",
     "artist": "lil durk",
     "track": "late checkout feat. hunxho (official",
@@ -1017,7 +903,7 @@
     "title": "Do You Mind (Official Video)",
     "artist": "",
     "track": "do you mind (",
-    "status": "added"
+    "status": "already_in_playlist"
   },
   {
     "title": "NoMBe - California Girls (Sonny Alven Remix)",
@@ -1708,5 +1594,119 @@
     "artist": "gotye",
     "track": "somebody that i used to know (4frnt remix)",
     "status": "already_in_playlist"
+  },
+  {
+    "title": "[Deleted video]",
+    "artist": null,
+    "track": "[deleted",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Deleted video]",
+    "artist": null,
+    "track": "[deleted",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Deleted video]",
+    "artist": null,
+    "track": "[deleted",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Deleted video]",
+    "artist": null,
+    "track": "[deleted",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Deleted video]",
+    "artist": null,
+    "track": "[deleted",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Deleted video]",
+    "artist": null,
+    "track": "[deleted",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Deleted video]",
+    "artist": null,
+    "track": "[deleted",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Deleted video]",
+    "artist": null,
+    "track": "[deleted",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Private video]",
+    "artist": null,
+    "track": "[private",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Private video]",
+    "artist": null,
+    "track": "[private",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Private video]",
+    "artist": null,
+    "track": "[private",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Private video]",
+    "artist": null,
+    "track": "[private",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Private video]",
+    "artist": null,
+    "track": "[private",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Private video]",
+    "artist": null,
+    "track": "[private",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Private video]",
+    "artist": null,
+    "track": "[private",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Private video]",
+    "artist": null,
+    "track": "[private",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Deleted video]",
+    "artist": null,
+    "track": "[deleted",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Private video]",
+    "artist": null,
+    "track": "[private",
+    "status": "private_or_deleted"
+  },
+  {
+    "title": "[Private video]",
+    "artist": null,
+    "track": "[private",
+    "status": "private_or_deleted"
   }
 ]

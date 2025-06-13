@@ -36,3 +36,11 @@ jobs:
       - name: Run tests
         run: |
           pytest
+      - name: Run coverage checks
+        run: |
+          pytest --cov=yt2spotify --cov-report=term-missing
+          coverage report --fail-under=80
+          coverage report --include="yt2spotify/core.py" --fail-under=70
+      - name: Validate JSON/CSV outputs
+        run: |
+          pytest tests/test_json_csv_validation.py
