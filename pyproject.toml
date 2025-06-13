@@ -16,6 +16,7 @@ dependencies = [
     "tqdm",
     "aiohttp",
     "pytest",
+    "pytest-cov",
     "rapidfuzz"
 ]
 requires-python = ">=3.8"

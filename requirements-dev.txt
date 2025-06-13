@@ -2,6 +2,7 @@
 ruff
 mypy
 pytest
+pytest-cov
 rich
 toml
 google-api-python-client

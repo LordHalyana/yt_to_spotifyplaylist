@@ -13,6 +13,7 @@ setup(
         'tqdm',
         'aiohttp',
         'pytest',
+        'pytest-cov',
         'rapidfuzz',
     ],
     entry_points={
