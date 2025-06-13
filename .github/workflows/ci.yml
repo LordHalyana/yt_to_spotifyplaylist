@@ -37,3 +37,7 @@ jobs:
       - name: Run tests (quiet)
         run: |
           pytest -q
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: 2ec9a605-c6cc-47cc-a935-06c9b9a90ca0
