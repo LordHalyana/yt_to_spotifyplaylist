@@ -18,15 +18,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-      - name: Install dependencies
+      - name: Install project and dev dependencies
         run: |
           pip install .[dev]
-      - name: Install package in editable mode
+      - name: Install ruff
         run: |
-          pip install -e .
+          pip install ruff
       - name: Lint with ruff
         run: |
           ruff check .
