@@ -1,10 +1,19 @@
 from difflib import SequenceMatcher
-from typing import Optional
+from typing import Optional, Callable, Any
+
+token_set_ratio: Optional[Callable[[str, str], float]]
+JaroWinkler: Optional[Any]
+
 try:
-    from rapidfuzz.fuzz import token_set_ratio
-    from rapidfuzz.distance import JaroWinkler
+    from rapidfuzz.fuzz import token_set_ratio as _token_set_ratio
+    token_set_ratio = _token_set_ratio
 except ImportError:
     token_set_ratio = None
+
+try:
+    from rapidfuzz.distance import JaroWinkler as _JaroWinkler
+    JaroWinkler = _JaroWinkler
+except ImportError:
     JaroWinkler = None
 
 __all__ = ["is_reasonable_match"]
@@ -40,7 +49,7 @@ def is_reasonable_match(
         jw_score = JaroWinkler.normalized_similarity(searched_title, found_title)
     else:
         jw_score = SequenceMatcher(None, searched_title, found_title).ratio()
-    if token_set_ratio:
+    if token_set_ratio is not None:
         tsr_score = token_set_ratio(searched_title, found_title)
     else:
         searched_set = set(searched_title.split())

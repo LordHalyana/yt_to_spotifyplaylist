@@ -28,6 +28,6 @@ def spotify_search(sp: spotipy.Spotify, query: str, limit: int = 1) -> dict[str,
         Spotify API search result as a dictionary.
     """
     result = sp.search(q=query, type='track', limit=limit)
-    if result is None:
+    if not isinstance(result, dict):
         return {}
     return result

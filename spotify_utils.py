@@ -1,6 +1,6 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
-from utils import get_spotify_credentials
+from yt2spotify.utils import get_spotify_credentials
 
 def get_spotify_client():
     client_id, client_secret, redirect_uri = get_spotify_credentials()
