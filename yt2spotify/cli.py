@@ -8,8 +8,6 @@ from yt2spotify.yt_utils import get_yt_playlist_titles_yt_dlp
 from yt2spotify.youtube import get_yt_playlist_titles_api as yt_api_fetch
 from yt2spotify.utils import clean_title, parse_artist_track
 from yt2spotify.cache import TrackCache
-from tqdm import tqdm
-import argparse
 import toml
 import os
 import json
@@ -156,7 +154,8 @@ def sync_command(
                             else:
                                 wait = batch_delay * (backoff_factor ** retries)
                             logger.warning(f"Spotify rate limit hit. Retrying after {wait:.1f}s (retry {retries+1}/{max_retries})...")
-                            import time; time.sleep(wait)
+                            import time
+                            time.sleep(wait)
                             retries += 1
                             if retries >= max_retries:
                                 logger.error("Max retries reached for Spotify rate limit. Skipping batch.")
@@ -165,12 +164,11 @@ def sync_command(
                             logger.error(f"Spotify API error: {e}")
                             break
                 batch.clear()
-                import time; time.sleep(batch_delay)
+                import time
+                time.sleep(batch_delay)
             added_count += 1
-        elif track_id:
-            added_songs.append({"title": title, "artist": artist, "track": track, "track_id": track_id, "status": "already_in_playlist"})
-        else:
-            not_found_songs.append({"title": title, "artist": artist, "track": track, "status": "not_found"})
+
+    # Final batch add if there are remaining tracks
     if batch and not dry_run:
         retries = 0
         while True:
@@ -178,6 +176,7 @@ def sync_command(
                 sp.playlist_add_items(playlist_id, batch)
                 break
             except Exception as e:
+                # Try to extract Retry-After from exception (spotipy uses requests)
                 retry_after = None
                 if hasattr(e, 'headers') and hasattr(getattr(e, 'headers'), 'get'):
                     retry_after = getattr(e, 'headers').get('Retry-After')
@@ -187,42 +186,40 @@ def sync_command(
                             wait = float(retry_after)
                         except Exception:
                             wait = batch_delay * (backoff_factor ** retries)
-                    else:
-                        wait = batch_delay * (backoff_factor ** retries)
-                    logger.warning(f"Spotify rate limit hit. Retrying after {wait:.1f}s (retry {retries+1}/{max_retries})...")
-                    import time; time.sleep(wait)
-                    retries += 1
-                    if retries >= max_retries:
-                        logger.error("Max retries reached for Spotify rate limit. Skipping batch.")
-                        break
                 else:
-                    logger.error(f"Spotify API error: {e}")
+                    wait = batch_delay * (backoff_factor ** retries)
+                logger.warning(f"Spotify rate limit hit. Retrying after {wait:.1f}s (retry {retries+1}/{max_retries})...")
+                import time
+                time.sleep(wait)
+                retries += 1
+                if retries >= max_retries:
+                    logger.error("Max retries reached for Spotify rate limit. Skipping batch.")
                     break
-        import time; time.sleep(batch_delay)
+            else:
+                batch.clear()
+                import time
+                time.sleep(batch_delay)
+                break
 
-    # Merge skipped and not found for output
-    with open(NOT_FOUND_SONGS_PATH, "w", encoding="utf-8") as f:
-        json.dump(not_found_songs + skipped_songs, f, ensure_ascii=False, indent=2)
-
-    deleted_count = len(skipped_songs)
-    missing_count = len(not_found_songs)
-    msg = (
-        f"Finished.\n"
-        f"{added_count} tracks added to Spotify playlist {playlist_id}.\n"
-        f"{deleted_count} tracks were deleted/private on YouTube.\n"
-        f"{missing_count} tracks were missing on Spotify."
-    )
-    tqdm.write(msg) if not no_progress else logger.info(msg)
+    # Write added and not found songs to output files
     with open(ADDED_SONGS_PATH, "w", encoding="utf-8") as f:
         json.dump(added_songs, f, ensure_ascii=False, indent=2)
-    missing_on_spotify = [
-        {"title": s["title"], "artist": s["artist"], "track": s["track"], "status": s["status"]}
-        for s in not_found_songs if s.get("status") == "not_found"
-    ]
-    with open(MISSING_ON_SPOTIFY_PATH, "w", encoding="utf-8") as f:
-        json.dump(missing_on_spotify, f, ensure_ascii=False, indent=2)
+    with open(NOT_FOUND_SONGS_PATH, "r+", encoding="utf-8") as f:
+        not_found_songs = json.load(f)
+        for song in not_found_songs:
+            song["status"] = "not_found"
+        f.seek(0)
+        json.dump(not_found_songs, f, ensure_ascii=False, indent=2)
+        f.truncate()
+
+    # Log summary
+    logger.info(f"Sync complete. Added {added_count} tracks to Spotify playlist.")
 
 def main() -> None:
+    """
+    CLI entry point for yt2spotify. Parses arguments and runs sync_command.
+    """
+    import argparse
     parser = argparse.ArgumentParser(description='Sync YouTube playlist to Spotify playlist')
     subparsers = parser.add_subparsers(dest='command', required=True)
     sync_parser = subparsers.add_parser('sync', help='Sync a YouTube playlist to a Spotify playlist')
@@ -246,6 +243,3 @@ def main() -> None:
             progress_wrapper=None,
             config=config
         )
-
-if __name__ == '__main__':
-    main()

@@ -83,11 +83,11 @@ def test_config_batching(monkeypatch):
                 if hasattr(e, 'http_status') and getattr(e, 'http_status') == 429:
                     if retry_after is not None:
                         try:
-                            wait = float(retry_after)
+                            # wait = float(retry_after)
+                            pass
                         except Exception:
-                            wait = config["batch_delay"] * (config["backoff_factor"] ** retries)
-                    else:
-                        wait = config["batch_delay"] * (config["backoff_factor"] ** retries)
+                            # wait = config["batch_delay"] * (config["backoff_factor"] ** retries)
+                            pass
                     retries += 1
                     if retries >= config["max_retries"]:
                         break
