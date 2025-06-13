@@ -28,8 +28,6 @@ build/
 run_log.csv
 
 # Data
-
-dryrun_added.json
 cache.sqlite
 
 # Test outputs
