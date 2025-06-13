@@ -117,9 +117,11 @@ def sync_command(
 
     # Get batch size and delay from config or use defaults
     batch_size = int(config.get("batch_size", 25))
-    batch_delay = float(config.get("batch_delay", 2.0))
+    # Set a high default batch_delay for safety
+    batch_delay = float(config.get("batch_delay", 10.0))
     max_retries = int(config.get("max_retries", 5))
     backoff_factor = float(config.get("backoff_factor", 2.0))
+    min_retry_after = 10.0  # Always wait at least 10 seconds after a 429 if Retry-After is missing
 
     # Build a set of track IDs already in the playlist for deduplication
     added_count = 0
@@ -142,18 +144,17 @@ def sync_command(
                         sp.playlist_add_items(playlist_id, batch)
                         break
                     except Exception as e:
-                        # Try to extract Retry-After from exception (spotipy uses requests)
                         retry_after = None
                         if hasattr(e, 'headers') and hasattr(getattr(e, 'headers'), 'get'):
                             retry_after = getattr(e, 'headers').get('Retry-After')
                         if hasattr(e, 'http_status') and getattr(e, 'http_status') == 429:
                             if retry_after is not None:
                                 try:
-                                    wait = float(retry_after)
+                                    wait = max(float(retry_after), min_retry_after)
                                 except Exception:
-                                    wait = batch_delay * (backoff_factor ** retries)
+                                    wait = max(batch_delay * (backoff_factor ** retries), min_retry_after)
                             else:
-                                wait = batch_delay * (backoff_factor ** retries)
+                                wait = max(batch_delay * (backoff_factor ** retries), min_retry_after)
                             logger.warning(f"Spotify rate limit hit. Retrying after {wait:.1f}s (retry {retries+1}/{max_retries})...")
                             import time
                             time.sleep(wait)
@@ -168,7 +169,6 @@ def sync_command(
                 import time
                 time.sleep(batch_delay)
             added_count += 1
-
     # Final batch add if there are remaining tracks
     if batch and not dry_run:
         retries = 0
@@ -177,18 +177,19 @@ def sync_command(
                 sp.playlist_add_items(playlist_id, batch)
                 break
             except Exception as e:
-                # Try to extract Retry-After from exception (spotipy uses requests)
                 retry_after = None
                 if hasattr(e, 'headers') and hasattr(getattr(e, 'headers'), 'get'):
                     retry_after = getattr(e, 'headers').get('Retry-After')
                 if hasattr(e, 'http_status') and getattr(e, 'http_status') == 429:
                     if retry_after is not None:
                         try:
-                            wait = float(retry_after)
+                            wait = max(float(retry_after), min_retry_after)
                         except Exception:
-                            wait = batch_delay * (backoff_factor ** retries)
+                            wait = max(batch_delay * (backoff_factor ** retries), min_retry_after)
+                    else:
+                        wait = max(batch_delay * (backoff_factor ** retries), min_retry_after)
                 else:
-                    wait = batch_delay * (backoff_factor ** retries)
+                    wait = max(batch_delay * (backoff_factor ** retries), min_retry_after)
                 logger.warning(f"Spotify rate limit hit. Retrying after {wait:.1f}s (retry {retries+1}/{max_retries})...")
                 import time
                 time.sleep(wait)
@@ -202,19 +203,62 @@ def sync_command(
                 time.sleep(batch_delay)
                 break
 
-    # Write added and not found songs to output files
+    # Write skipped (private/deleted) to a dedicated file, appending if file exists
+    PRIVATE_DELETED_SONGS_PATH = os.path.join(OUTPUT_DIR, "private_deleted_songs.json")
+    if os.path.exists(PRIVATE_DELETED_SONGS_PATH):
+        with open(PRIVATE_DELETED_SONGS_PATH, "r", encoding="utf-8") as f:
+            prev_skipped = json.load(f)
+    else:
+        prev_skipped = []
+    with open(PRIVATE_DELETED_SONGS_PATH, "w", encoding="utf-8") as f:
+        json.dump(prev_skipped + skipped_songs, f, ensure_ascii=False, indent=2)
+
+    # Write only not found on Spotify to not_found_songs.json, appending if file exists
+    if os.path.exists(NOT_FOUND_SONGS_PATH):
+        with open(NOT_FOUND_SONGS_PATH, "r", encoding="utf-8") as f:
+            prev_not_found = json.load(f)
+    else:
+        prev_not_found = []
+    not_found_on_spotify = [s for s in not_found_songs if s.get("status") == "not_found"]
+    with open(NOT_FOUND_SONGS_PATH, "w", encoding="utf-8") as f:
+        json.dump(prev_not_found + not_found_on_spotify, f, ensure_ascii=False, indent=2)
+
+    # Write added songs as before, appending if file exists
+    if os.path.exists(ADDED_SONGS_PATH):
+        with open(ADDED_SONGS_PATH, "r", encoding="utf-8") as f:
+            prev_added = json.load(f)
+    else:
+        prev_added = []
     with open(ADDED_SONGS_PATH, "w", encoding="utf-8") as f:
-        json.dump(added_songs, f, ensure_ascii=False, indent=2)
-    with open(NOT_FOUND_SONGS_PATH, "r+", encoding="utf-8") as f:
-        not_found_songs = json.load(f)
-        for song in not_found_songs:
-            song["status"] = "not_found"
-        f.seek(0)
-        json.dump(not_found_songs, f, ensure_ascii=False, indent=2)
-        f.truncate()
+        json.dump(prev_added + added_songs, f, ensure_ascii=False, indent=2)
+
+    # Write a full debug file with all tracks and their final status
+    all_results = []
+    # Add all skipped (private/deleted)
+    for s in skipped_songs:
+        all_results.append({"title": s["title"], "artist": s["artist"], "track": s["track"], "status": s["status"]})
+    # Add all added and already in playlist
+    for s in added_songs:
+        all_results.append({"title": s["title"], "artist": s["artist"], "track": s["track"], "status": s["status"]})
+    # Add all not found on Spotify
+    for s in not_found_on_spotify:
+        all_results.append({"title": s["title"], "artist": s["artist"], "track": s["track"], "status": s["status"]})
+    ALL_RESULTS_PATH = os.path.join(OUTPUT_DIR, "all_results.json")
+    with open(ALL_RESULTS_PATH, "w", encoding="utf-8") as f:
+        json.dump(all_results, f, ensure_ascii=False, indent=2)
 
     # Log summary
-    logger.info(f"Sync complete. Added {added_count} tracks to Spotify playlist.")
+    num_added = sum(1 for s in added_songs if s["status"] == "added")
+    num_already = sum(1 for s in added_songs if s["status"] == "already_in_playlist")
+    num_deleted_private = sum(1 for s in skipped_songs if s["status"] == "private_or_deleted")
+    num_missing = len(not_found_on_spotify)
+    logger.info(
+        f"Finished.\n"
+        f"{num_added} tracks added to Spotify playlist {playlist_id}.\n"
+        f"{num_already} tracks were already in playlist.\n"
+        f"{num_deleted_private} tracks were deleted/private on YouTube.\n"
+        f"{num_missing} tracks were missing on Spotify."
+    )
 
 def main() -> None:
     """
