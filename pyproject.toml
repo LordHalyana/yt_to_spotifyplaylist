@@ -19,7 +19,9 @@ dependencies = [
     "rapidfuzz",
     "google-api-python-client",
     "toml",
-    "pytest-asyncio"
+    "pytest-asyncio",
+    "fastapi",
+    "uvicorn[standard]"
 ]
 requires-python = ">=3.8"
 license = "MIT"
