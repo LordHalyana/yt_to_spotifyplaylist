@@ -101,6 +101,18 @@ def sync_command(
 
     # Get all track IDs in the Spotify playlist (avoid duplicates)
     sp = get_spotify_client()
+    # Save snapshot of current playlist state if requested
+    if config.get("snapshot"):
+        snapshot_path = os.path.join(
+            OUTPUT_DIR, f"playlist_{playlist_id}_snapshot.json"
+        )
+        playlist_snapshot = sp.playlist_tracks(playlist_id)
+        items = playlist_snapshot.get("items", [])
+        while playlist_snapshot.get("next"):
+            playlist_snapshot = sp.next(playlist_snapshot)
+            items.extend(playlist_snapshot.get("items", []))
+        with open(snapshot_path, "w", encoding="utf-8") as f:
+            json.dump(items, f, ensure_ascii=False, indent=2)
     playlist_tracks = set()
     results = sp.playlist_tracks(playlist_id)
     while results:
@@ -420,3 +432,33 @@ def main() -> None:
             progress_wrapper=None,
             config=config,
         )
+    elif args.command == "undo":
+        undo_command(
+            playlist_id=args.playlist_id,
+            config=config,
+        )
+
+
+def undo_command(playlist_id: str, config: Optional[dict[str, Any]] = None) -> None:
+    """
+    Restores the playlist to the state saved in the snapshot file.
+    """
+    from yt2spotify.core import get_spotify_client
+    import json
+
+    config = config or {}
+    output_dir = OUTPUT_DIR
+    snapshot_path = os.path.join(output_dir, f"playlist_{playlist_id}_snapshot.json")
+    if not os.path.exists(snapshot_path):
+        logger.error(f"Snapshot file not found: {snapshot_path}")
+        raise FileNotFoundError(f"Snapshot file not found: {snapshot_path}")
+    with open(snapshot_path, "r", encoding="utf-8") as f:
+        snapshot = json.load(f)
+    track_ids = [
+        item["track"]["id"]
+        for item in snapshot
+        if "track" in item and "id" in item["track"]
+    ]
+    sp = get_spotify_client()
+    sp.playlist_replace_items(playlist_id, track_ids)
+    logger.info(f"Restored playlist {playlist_id} from snapshot.")

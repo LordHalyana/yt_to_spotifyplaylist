@@ -17,7 +17,7 @@ repos:
     hooks:
       - id: pytest
         name: pytest
-        entry: pytest
+        entry: D:/GitRepos/yt_to_spotifyplaylist/.venv/Scripts/pytest.exe
         language: system
         types: [python]
         pass_filenames: false
